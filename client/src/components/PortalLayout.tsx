@@ -32,6 +32,7 @@ import { CSSProperties } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
 import { Button } from "./ui/button";
+import { PWAInstallPrompt } from "./PWAInstallPrompt";
 
 interface NavItem {
   icon: LucideIcon;
@@ -192,6 +193,7 @@ function PortalSidebarContent({ children, navItems, portalTitle, portalRole }: {
         )}
         <main className="flex-1 p-6">{children}</main>
       </SidebarInset>
+      <PWAInstallPrompt />
     </>
   );
 }

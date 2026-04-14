@@ -48,6 +48,7 @@ import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
 import { Button } from "./ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { GlobalSearch } from "./GlobalSearch";
+import { PWAInstallPrompt } from "./PWAInstallPrompt";
 
 function NotificationBell() {
   const { data: stats } = trpc.dashboard.stats.useQuery(undefined, { refetchInterval: 60_000 });
@@ -270,6 +271,7 @@ function AdminSidebarContent({ children }: { children: React.ReactNode }) {
         </div>
         <main className="flex-1 p-6">{children}</main>
       </SidebarInset>
+      <PWAInstallPrompt />
     </>
   );
 }

@@ -5,6 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { defineConfig, type Plugin, type ViteDevServer } from "vite";
 import { vitePluginManusRuntime } from "vite-plugin-manus-runtime";
+import { VitePWA } from "vite-plugin-pwa";
 
 // =============================================================================
 // Manus Debug Collector - Vite Plugin
@@ -150,13 +151,69 @@ function vitePluginManusDebugCollector(): Plugin {
   };
 }
 
+const pwaPlugin = VitePWA({
+  registerType: "autoUpdate",
+  includeAssets: ["icon.svg", "apple-touch-icon.png"],
+  manifest: {
+    name: "ImobiSaaS — Gestão Imobiliária",
+    short_name: "ImobiSaaS",
+    description: "Sistema de gestão imobiliária profissional",
+    theme_color: "#1a56db",
+    background_color: "#ffffff",
+    display: "standalone",
+    orientation: "portrait-primary",
+    scope: "/",
+    start_url: "/",
+    lang: "pt-BR",
+    icons: [
+      {
+        src: "/icons/pwa-192x192.png",
+        sizes: "192x192",
+        type: "image/png",
+      },
+      {
+        src: "/icons/pwa-512x512.png",
+        sizes: "512x512",
+        type: "image/png",
+        purpose: "any maskable",
+      },
+    ],
+  },
+  workbox: {
+    globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+    runtimeCaching: [
+      {
+        urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+        handler: "CacheFirst",
+        options: {
+          cacheName: "google-fonts-cache",
+          expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 },
+          cacheableResponse: { statuses: [0, 200] },
+        },
+      },
+      {
+        urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
+        handler: "CacheFirst",
+        options: {
+          cacheName: "gstatic-fonts-cache",
+          expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 },
+          cacheableResponse: { statuses: [0, 200] },
+        },
+      },
+    ],
+  },
+  devOptions: {
+    enabled: false,
+  },
+});
+
 const isProd = process.env.NODE_ENV === "production";
 const plugins = isProd
-  ? [react(), tailwindcss()]
+  ? [react(), tailwindcss(), pwaPlugin]
   : [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector()];
 
 export default defineConfig({
-  plugins,
+  plugins: plugins as any,
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "client", "src"),
