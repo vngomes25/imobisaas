@@ -1,0 +1,510 @@
+================================================================================
+  IMOBISAAS — GUIA DE DEPLOY NO HOSTINGER VPS KVM 1
+  Ubuntu 22.04 LTS | Node.js 20 | MySQL 8 | PM2 | NGINX
+================================================================================
+
+  Este guia leva você do zero até o sistema no ar.
+  Tempo estimado: 1,5 a 3 horas (primeira vez).
+  Pré-requisito: VPS Hostinger KVM 1 contratado com Ubuntu 22.04.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ETAPA 0 — ANTES DE COMEÇAR (no painel Hostinger)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  1. Acesse hPanel → VPS → seu servidor
+  2. Copie o IP do servidor (ex: 185.xxx.xxx.xxx)
+  3. Anote a senha root (enviada por e-mail ao contratar)
+  4. Se tiver domínio: aponte o DNS A record para o IP do VPS
+     (aguarde até 24h para propagar, mas normalmente < 1h)
+
+  Acesso SSH (no terminal do seu computador Windows):
+  > ssh root@185.xxx.xxx.xxx
+  (digite a senha quando solicitado)
+
+  OU use o terminal web do Hostinger: hPanel → VPS → Terminal
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ETAPA 1 — ATUALIZAR O SERVIDOR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Execute como root:
+
+  apt update && apt upgrade -y
+  apt install -y curl git unzip ufw htop
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ETAPA 2 — CRIAR USUÁRIO DO SISTEMA (não usar root em produção)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  adduser imobisaas
+  # (defina uma senha segura quando solicitado)
+  # (pode deixar os outros campos em branco — só pressione Enter)
+
+  usermod -aG sudo imobisaas
+
+  # Trocar para o novo usuário:
+  su - imobisaas
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ETAPA 3 — INSTALAR NODE.JS 20
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+  sudo apt install -y nodejs
+
+  # Verificar:
+  node --version   # deve mostrar v20.x.x
+  npm --version
+
+  # Instalar pnpm (gerenciador de pacotes do projeto):
+  sudo npm install -g pnpm pm2
+
+  # Verificar:
+  pnpm --version   # deve mostrar 10.x.x
+  pm2 --version
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ETAPA 4 — INSTALAR MYSQL 8
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  sudo apt install -y mysql-server
+
+  # Iniciar e habilitar na inicialização:
+  sudo systemctl start mysql
+  sudo systemctl enable mysql
+
+  # Configuração de segurança inicial:
+  sudo mysql_secure_installation
+  # Responda:
+  #   "Would you like to set up VALIDATE PASSWORD component?" → N
+  #   "New password:" → defina uma senha FORTE para o root do MySQL
+  #   "Remove anonymous users?" → Y
+  #   "Disallow root login remotely?" → Y
+  #   "Remove test database?" → Y
+  #   "Reload privilege tables?" → Y
+
+  # Criar banco e usuário para o sistema:
+  sudo mysql -u root -p
+  # (digita a senha root do MySQL)
+
+  -- No prompt do MySQL, execute:
+  CREATE DATABASE imobisaas CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+  CREATE USER 'imobisaas_user'@'localhost' IDENTIFIED BY 'SENHA_FORTE_AQUI';
+  GRANT ALL PRIVILEGES ON imobisaas.* TO 'imobisaas_user'@'localhost';
+  FLUSH PRIVILEGES;
+  EXIT;
+
+  ⚠️  IMPORTANTE: substitua 'SENHA_FORTE_AQUI' por uma senha real e segura.
+      Guarde essa senha — você vai precisar no próximo passo.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ETAPA 5 — ENVIAR O CÓDIGO PARA O SERVIDOR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  OPÇÃO A — Via GitHub (recomendado para atualizações fáceis):
+  ─────────────────────────────────────────────────────────────
+  1. No GitHub: crie um repositório privado (github.com → New repository)
+  2. No seu computador Windows (PowerShell ou Git Bash):
+     cd C:\Users\conta\Downloads\imobisaas
+     git init
+     git add .
+     git commit -m "first commit"
+     git branch -M main
+     git remote add origin https://github.com/SEU_USUARIO/imobisaas.git
+     git push -u origin main
+
+  3. No servidor VPS:
+     cd /home/imobisaas
+     git clone https://github.com/SEU_USUARIO/imobisaas.git
+     cd imobisaas
+
+  OPÇÃO B — Via SCP (upload direto, sem GitHub):
+  ───────────────────────────────────────────────
+  No seu computador Windows (PowerShell):
+  scp -r C:\Users\conta\Downloads\imobisaas imobisaas@185.xxx.xxx.xxx:/home/imobisaas/
+  (vai demorar alguns minutos — a pasta node_modules é grande)
+
+  DICA: Se usar a Opção B, primeiro exclua a pasta node_modules antes de enviar:
+  No Windows Explorer: apague C:\Users\conta\Downloads\imobisaas\node_modules
+  Depois envie. O pnpm install irá reinstalar no servidor.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ETAPA 6 — CONFIGURAR AS VARIÁVEIS DE AMBIENTE (.env)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  No servidor, dentro de /home/imobisaas/imobisaas/:
+
+  nano .env
+
+  Cole o conteúdo abaixo (ajuste os valores marcados com ←):
+
+  ──────────────────────────────────────────────
+  NODE_ENV=production
+  PORT=3000
+
+  # Banco de dados — use as credenciais criadas na Etapa 4
+  DATABASE_URL=mysql://imobisaas_user:SENHA_FORTE_AQUI@localhost:3306/imobisaas
+
+  # Segredo JWT — gere uma string aleatória longa (mínimo 32 caracteres)
+  JWT_SECRET=coloque-uma-chave-secreta-muito-longa-e-aleatoria-aqui-2024
+
+  # Pasta de uploads (fotos dos imóveis)
+  UPLOADS_DIR=/home/imobisaas/imobisaas/uploads
+  ──────────────────────────────────────────────
+
+  Salvar no nano: Ctrl+O → Enter → Ctrl+X
+
+  Para gerar um JWT_SECRET seguro, execute:
+  node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ETAPA 7 — INSTALAR DEPENDÊNCIAS E FAZER BUILD
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  cd /home/imobisaas/imobisaas
+
+  # Criar pasta de uploads:
+  mkdir -p uploads logs
+
+  # Instalar dependências:
+  pnpm install
+
+  # Build de produção (frontend + backend):
+  NODE_ENV=production pnpm build
+
+  # Aguarde — vai levar 1 a 3 minutos.
+  # Ao final, deve aparecer: "✓ built in Xs" e os arquivos estarão em dist/
+
+  # Verificar:
+  ls dist/
+  # Deve mostrar: index.js  public/
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ETAPA 8 — TESTAR O SERVIDOR (antes de configurar NGINX)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  cd /home/imobisaas/imobisaas
+  node dist/index.js
+
+  # Deve aparecer:
+  # [DB] Running migrations...
+  # [DB] Migrations complete.
+  # Server running on http://0.0.0.0:3000/
+
+  # Teste em outro terminal:
+  curl http://localhost:3000
+
+  # Deve retornar o HTML do frontend.
+  # Pressione Ctrl+C para parar.
+
+  Se der erro de banco:
+  → Verifique se o DATABASE_URL no .env está correto
+  → Verifique se o MySQL está rodando: sudo systemctl status mysql
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ETAPA 9 — CONFIGURAR PM2 (manter o servidor rodando 24/7)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  cd /home/imobisaas/imobisaas
+
+  # Iniciar com PM2:
+  pm2 start ecosystem.config.cjs
+
+  # Salvar para reiniciar automaticamente após reboot:
+  pm2 save
+  pm2 startup
+  # (execute o comando que o PM2 mostrar — começa com "sudo env PATH=...")
+
+  # Verificar status:
+  pm2 status
+  pm2 logs imobisaas --lines 30
+
+  # Comandos úteis do PM2:
+  pm2 restart imobisaas   # reiniciar
+  pm2 stop imobisaas      # parar
+  pm2 logs imobisaas      # ver logs ao vivo
+  pm2 monit               # monitor gráfico (Ctrl+C para sair)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ETAPA 10 — INSTALAR E CONFIGURAR NGINX
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  sudo apt install -y nginx
+
+  # Copiar a configuração do projeto:
+  sudo cp /home/imobisaas/imobisaas/nginx.conf /etc/nginx/sites-available/imobisaas
+
+  # Editar e substituir "SEU_DOMINIO.com.br" pelo domínio real:
+  sudo nano /etc/nginx/sites-available/imobisaas
+  # Substitua todas as ocorrências de SEU_DOMINIO.com.br
+
+  # Ativar o site:
+  sudo ln -s /etc/nginx/sites-available/imobisaas /etc/nginx/sites-enabled/
+
+  # Remover o site padrão do NGINX:
+  sudo rm -f /etc/nginx/sites-enabled/default
+
+  # Testar a configuração:
+  sudo nginx -t
+  # Deve mostrar: "syntax is ok" e "test is successful"
+
+  # Iniciar/recarregar NGINX:
+  sudo systemctl restart nginx
+  sudo systemctl enable nginx
+
+  ⚠️  Neste ponto o NGINX está configurado mas SSL ainda não está ativo.
+  O site vai funcionar em HTTP (porta 80) até o próximo passo.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ETAPA 11 — CONFIGURAR SSL/HTTPS COM CERTBOT (Let's Encrypt — GRATUITO)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ⚠️  PRÉ-REQUISITO: O DNS do domínio já deve estar apontando para o IP do VPS.
+  Verifique: https://dnschecker.org → coloque seu domínio → verifique o A record.
+
+  # Instalar Certbot:
+  sudo apt install -y certbot python3-certbot-nginx
+
+  # Gerar certificado (substitua pelo seu domínio):
+  sudo certbot --nginx -d SEU_DOMINIO.com.br -d www.SEU_DOMINIO.com.br
+
+  # Responda as perguntas:
+  #   E-mail: seu e-mail real
+  #   Agree to terms? → A
+  #   Share email with EFF? → N
+  #   Redirect HTTP to HTTPS? → 2 (sim, redirecionar)
+
+  # O Certbot vai:
+  # 1. Verificar que o domínio aponta para este servidor
+  # 2. Gerar o certificado SSL
+  # 3. Editar o nginx.conf automaticamente com os caminhos dos certificados
+  # 4. Configurar renovação automática
+
+  # Verificar renovação automática:
+  sudo certbot renew --dry-run
+  # Deve mostrar: "Congratulations, all simulated renewals succeeded"
+
+  # Testar:
+  # Abra https://SEU_DOMINIO.com.br no navegador
+  # Deve aparecer o sistema com cadeado verde (HTTPS)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ETAPA 12 — CONFIGURAR FIREWALL (UFW)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  sudo ufw allow OpenSSH
+  sudo ufw allow 'Nginx Full'
+  sudo ufw enable
+  # Confirmar: y
+
+  sudo ufw status
+  # Deve mostrar:
+  # OpenSSH    ALLOW
+  # Nginx Full ALLOW
+
+  ⚠️  NUNCA bloqueie SSH antes de confirmar que está conectado.
+  A porta 3000 (Node.js) NÃO deve ser aberta — o NGINX faz a ponte.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ETAPA 13 — CONFIGURAR BACKUP AUTOMÁTICO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  # Editar o script de backup com a senha do banco:
+  nano /home/imobisaas/imobisaas/backup.sh
+  # Altere: DB_PASS="SENHA_FORTE_AQUI" para a senha real
+
+  # Tornar executável:
+  chmod +x /home/imobisaas/imobisaas/backup.sh
+
+  # Criar pasta de backups:
+  mkdir -p /home/imobisaas/backups
+
+  # Testar manualmente:
+  /home/imobisaas/imobisaas/backup.sh
+  ls /home/imobisaas/backups/
+  # Deve mostrar: db_YYYY-MM-DD_HH-MM-SS.sql.gz
+
+  # Configurar execução automática todo dia às 3h da manhã:
+  crontab -e
+  # Se perguntar o editor: escolha 1 (nano)
+  # Adicione no final do arquivo:
+  0 3 * * * /home/imobisaas/imobisaas/backup.sh >> /home/imobisaas/logs/backup.log 2>&1
+
+  # Salvar: Ctrl+O → Enter → Ctrl+X
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ETAPA 14 — CRIAR CONTA ADMIN INICIAL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  O primeiro usuário registrado no sistema vira admin automaticamente.
+
+  1. Acesse https://SEU_DOMINIO.com.br
+  2. Clique em "Criar conta" ou "Registrar"
+  3. Cadastre o admin da JR Imobiliária (ex: admin@jrimobiliaria.com.br)
+  4. Faça login → você já será admin
+
+  Para verificar no banco (opcional):
+  mysql -u imobisaas_user -p imobisaas
+  SELECT id, name, email, role FROM users;
+  EXIT;
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ETAPA 15 — VERIFICAÇÃO FINAL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Checklist:
+  [ ] https://SEU_DOMINIO.com.br carrega o sistema com cadeado verde
+  [ ] Login funciona
+  [ ] Consegue criar proprietário, imóvel, inquilino, contrato
+  [ ] Upload de fotos funciona
+  [ ] pm2 status mostra "online" para imobisaas
+  [ ] sudo systemctl status nginx mostra "active (running)"
+  [ ] sudo systemctl status mysql mostra "active (running)"
+  [ ] Backup manual rodou sem erros
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  COMO ATUALIZAR O SISTEMA (deploys futuros)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Sempre que fizer mudanças no código e quiser publicar:
+
+  No seu computador (Windows):
+  cd C:\Users\conta\Downloads\imobisaas
+  git add .
+  git commit -m "descrição da mudança"
+  git push
+
+  No servidor VPS:
+  cd /home/imobisaas/imobisaas
+  git pull
+  pnpm install             # só se mudou dependências no package.json
+  NODE_ENV=production pnpm build
+  pm2 restart imobisaas
+
+  Pronto! Sistema atualizado sem downtime significativo.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  RESOLUÇÃO DE PROBLEMAS COMUNS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  PROBLEMA: pm2 mostra "errored"
+  → pm2 logs imobisaas --lines 50
+  → Geralmente é erro no .env (DATABASE_URL errado) ou build não foi feito
+
+  PROBLEMA: Nginx 502 Bad Gateway
+  → O Node.js (PM2) não está rodando: pm2 restart imobisaas
+  → Verifique: pm2 status
+
+  PROBLEMA: Erro de conexão com banco
+  → Verifique DATABASE_URL no .env
+  → Teste: mysql -u imobisaas_user -p imobisaas (deve conectar)
+
+  PROBLEMA: Fotos não aparecem
+  → Verifique se UPLOADS_DIR existe: ls /home/imobisaas/imobisaas/uploads
+  → Permissões: chmod 755 /home/imobisaas/imobisaas/uploads
+
+  PROBLEMA: Certbot falhou ("No A record found")
+  → DNS ainda não propagou — aguarde e tente novamente
+  → Verifique em: https://dnschecker.org
+
+  PROBLEMA: Build falhou
+  → Verifique erros de TypeScript: pnpm check
+  → Tente: pnpm install && NODE_ENV=production pnpm build
+
+  PROBLEMA: "Port 3000 is busy"
+  → Algum processo já usa a porta: sudo fuser -k 3000/tcp
+  → Depois reinicie: pm2 restart imobisaas
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  COMANDOS DE MONITORAMENTO DO DIA A DIA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  # Status geral:
+  pm2 status
+
+  # Logs do sistema em tempo real:
+  pm2 logs imobisaas
+
+  # Uso de memória/CPU:
+  pm2 monit
+
+  # Uso de disco:
+  df -h
+
+  # Uso de memória RAM:
+  free -h
+
+  # Processos que mais consomem:
+  htop
+
+  # Status do MySQL:
+  sudo systemctl status mysql
+
+  # Status do NGINX:
+  sudo systemctl status nginx
+
+  # Logs do NGINX (erros):
+  sudo tail -f /var/log/nginx/imobisaas.error.log
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ESTRUTURA DE ARQUIVOS NO SERVIDOR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  /home/imobisaas/
+  ├── imobisaas/              ← pasta do projeto
+  │   ├── dist/               ← build de produção
+  │   │   ├── index.js        ← servidor Node.js compilado
+  │   │   └── public/         ← frontend React compilado
+  │   ├── drizzle/            ← migrations SQL (necessário em produção)
+  │   ├── uploads/            ← fotos dos imóveis
+  │   ├── logs/               ← logs do PM2 e backup
+  │   ├── .env                ← variáveis de ambiente (NUNCA commitar no Git!)
+  │   ├── ecosystem.config.cjs ← configuração do PM2
+  │   ├── backup.sh           ← script de backup
+  │   └── package.json
+  └── backups/                ← dumps do banco + zips de fotos
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  IMPORTANTE: SEGURANÇA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ✅ Nunca suba o arquivo .env para o GitHub
+     Adicione ao .gitignore: echo ".env" >> .gitignore
+
+  ✅ Use senhas fortes para MySQL e JWT_SECRET
+
+  ✅ Mantenha o sistema atualizado:
+     sudo apt update && sudo apt upgrade -y   (mensalmente)
+
+  ✅ Monitore o uso do disco regularmente (fotos crescem):
+     df -h
+
+  ✅ Faça backups regulares — configure o cron da Etapa 13
+
+  ✅ O arquivo .env deve ter permissões restritas:
+     chmod 600 /home/imobisaas/imobisaas/.env
+
+================================================================================
+  Documentação gerada para: ImobiSaaS v1.0 — Deploy Hostinger KVM 1
+================================================================================

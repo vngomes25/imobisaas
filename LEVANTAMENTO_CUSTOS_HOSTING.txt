@@ -1,0 +1,622 @@
+================================================================================
+  IMOBISAAS — LEVANTAMENTO DE CUSTOS E ESTRATÉGIA DE HOSPEDAGEM
+  Data: Abril / 2026
+  Documento preparado para: JR Imobiliária (cliente piloto)
+================================================================================
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ÍNDICE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  1. Visão geral da stack técnica
+  2. Componentes que precisam de hospedagem
+  3. Opção A — Manus (plataforma original)
+  4. Opção B — Railway.app  [⭐ RECOMENDADO — cliente único]
+  5. Opção C — VPS Hostinger Brasil
+  6. Opção D — Hetzner Cloud (Europa)
+  7. Opção E — DigitalOcean
+  8. Opção F — Render.com
+  9. Opção G — AWS / Google Cloud / Azure (enterprise)
+  10. Storage de fotos de imóveis
+  11. Domínio + SSL
+  12. Tabela comparativa de custos mensais
+  13. Cenário 1: Cliente único (JR Imobiliária)
+  14. Cenário 2: SaaS — vender para múltiplos clientes
+  15. Sugestões de preço para clientes
+  16. Roadmap de escalabilidade
+  17. Resumo e recomendação final
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  1. VISÃO GERAL DA STACK TÉCNICA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Frontend : React 19 + Vite  →  gera arquivos estáticos (HTML/JS/CSS)
+  Backend  : Node.js + Express + tRPC  →  processo contínuo (server)
+  Banco    : MySQL 8  →  dados de contratos, inquilinos, proprietários
+  Storage  : Fotos de imóveis  →  arquivos de imagem (base64 ou disco)
+  Auth     : JWT via cookie HTTP-only (sem OAuth externo)
+
+  Requisitos mínimos de servidor:
+  ┌─────────────────┬──────────────────────────────────────────┐
+  │ RAM             │ 512 MB mínimo / 1 GB recomendado         │
+  │ CPU             │ 1 vCPU mínimo                            │
+  │ Disco           │ 10 GB SSD (banco + fotos)                │
+  │ Node.js         │ 20 LTS                                   │
+  │ MySQL           │ 8.0                                      │
+  │ SO              │ Ubuntu 22.04 LTS (recomendado)           │
+  └─────────────────┴──────────────────────────────────────────┘
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  2. COMPONENTES QUE PRECISAM DE HOSPEDAGEM
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ┌─────────────────────┬────────────────────────────────────────────────────┐
+  │ Componente          │ Onde hospedar                                      │
+  ├─────────────────────┼────────────────────────────────────────────────────┤
+  │ API (Node/tRPC)     │ VPS, PaaS, container                               │
+  │ Frontend (React)    │ CDN estático (Vercel, Netlify, Cloudflare Pages)   │
+  │                     │  — ou servido pelo próprio backend Express          │
+  │ Banco MySQL         │ Managed DB ou banco no mesmo VPS                   │
+  │ Fotos dos imóveis   │ Disco do VPS, S3, Cloudflare R2, Bunny.net CDN     │
+  │ Domínio             │ Registro.br, GoDaddy, Cloudflare                   │
+  │ SSL (HTTPS)         │ Let's Encrypt (gratuito) ou incluso no plano        │
+  └─────────────────────┴────────────────────────────────────────────────────┘
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  3. OPÇÃO A — MANUS (Plataforma original)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  O Manus é uma plataforma de agente de IA que pode construir e publicar
+  aplicações web temporariamente durante o desenvolvimento.
+
+  IMPORTANTE: O Manus NÃO é uma plataforma de hospedagem de produção.
+  Os ambientes criados no Manus são temporários (uso durante o desenvolvimento).
+  Para deixar o sistema disponível 24/7 para um cliente real, é necessário
+  migrar para uma hospedagem dedicada.
+
+  Planos Manus (referência — verificar preços atuais em manus.im):
+  ┌────────────────┬──────────────────────────────────────────────────────┐
+  │ Gratuito       │ Créditos limitados, sem SLA, ambiente temporário     │
+  │ Pro (~US$39/m) │ Mais créditos, execução mais longa, sem persistência │
+  │                │ de banco de dados contínua para produção              │
+  └────────────────┴──────────────────────────────────────────────────────┘
+
+  VEREDICTO: ❌ Não recomendado para produção.
+  Use o Manus apenas para desenvolvimento e prototipagem.
+  Custo de produção em outras plataformas é menor e mais estável.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  4. OPÇÃO B — RAILWAY.APP  ⭐ RECOMENDADO (melhor custo-benefício inicial)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Site: railway.app  |  Cobrança: por uso (GB RAM × horas)
+
+  O Railway é uma PaaS (Platform as a Service) moderna. Você sobe o código
+  via GitHub e ele cuida do resto: deploy automático, MySQL gerenciado,
+  domínio com SSL, logs, variáveis de ambiente.
+
+  O que é incluído:
+  • Serviço Node.js (backend + frontend servido pelo Express)
+  • MySQL 8 gerenciado (backups automáticos)
+  • Domínio .railway.app gratuito ou domínio próprio com SSL automático
+  • Deploy automático via GitHub Push
+  • Logs em tempo real, métricas básicas
+
+  Estimativa de custo para o ImobiSaaS:
+  ┌──────────────────────────────┬───────────────────────────────────────┐
+  │ Node.js service (512 MB RAM) │ ~US$ 5 – 8 / mês                     │
+  │ MySQL 8 gerenciado (1 GB)    │ ~US$ 5 – 7 / mês                     │
+  │ Domínio próprio + SSL        │ US$ 0 (SSL) + custo do domínio        │
+  │ ──────────────────────────── │ ───────────────────────────────────── │
+  │ TOTAL ESTIMADO               │ US$ 10 – 15 / mês ≈ R$ 55 – 85/mês  │
+  └──────────────────────────────┴───────────────────────────────────────┘
+
+  Prós:
+  ✅ Sem gerenciar servidor (sem SSH, sem updates manuais)
+  ✅ MySQL já configurado e com backup
+  ✅ Deploy em minutos via GitHub
+  ✅ Escala fácil se crescer
+  ✅ Interface moderna e fácil de usar
+  ✅ Suporte a múltiplos projetos (multi-cliente fácil)
+
+  Contras:
+  ❌ Preço em dólar (varia com câmbio)
+  ❌ Cobrança por uso (pode surpreender se mal configurado)
+  ❌ Plano gratuito descontinuado (trial de US$5 apenas)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  5. OPÇÃO C — VPS HOSTINGER BRASIL  ⭐ RECOMENDADO (melhor custo em R$)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Site: hostinger.com.br  |  Cobrança: em Reais, servidor no Brasil
+
+  Planos VPS KVM (servidores Linux):
+  ┌───────────────┬────────┬────────┬──────────┬──────────────────────────┐
+  │ Plano         │ RAM    │ vCPU   │ SSD      │ Preço/mês (mensal)       │
+  ├───────────────┼────────┼────────┼──────────┼──────────────────────────┤
+  │ KVM 1         │ 4 GB   │ 2 vCPU │ 50 GB    │ R$ 39,99/mês (anual)    │
+  │ KVM 2         │ 8 GB   │ 4 vCPU │ 100 GB   │ R$ 69,99/mês (anual)    │
+  │ KVM 4         │ 16 GB  │ 8 vCPU │ 200 GB   │ R$ 139,99/mês (anual)   │
+  └───────────────┴────────┴────────┴──────────┴──────────────────────────┘
+
+  Para o ImobiSaaS (1 cliente): KVM 1 é mais que suficiente.
+  Para múltiplos clientes (até 10): KVM 2 com boa folga.
+
+  O que você gerencia:
+  • Instalar Node.js, MySQL via painel ou SSH
+  • Configurar NGINX como proxy reverso
+  • Instalar SSL com Certbot (Let's Encrypt — gratuito)
+  • Configurar backups manuais ou automatizados
+
+  Estimativa de custo total:
+  ┌──────────────────────────────┬───────────────────────────────────────┐
+  │ VPS KVM 1 (4 GB RAM)         │ R$ 39,99 / mês                       │
+  │ Domínio .com.br (Registro.br)│ R$ 40,00 / ano ≈ R$ 3,30 / mês      │
+  │ SSL (Let's Encrypt)          │ R$ 0,00 (gratuito)                   │
+  │ Backup externo (opcional)    │ R$ 0 a R$ 15 / mês                   │
+  │ ──────────────────────────── │ ───────────────────────────────────── │
+  │ TOTAL ESTIMADO               │ R$ 43 – 58 / mês                     │
+  └──────────────────────────────┴───────────────────────────────────────┘
+
+  Prós:
+  ✅ Preço em Reais (sem variação cambial)
+  ✅ Servidor no Brasil (baixa latência para usuários brasileiros)
+  ✅ Controle total do ambiente
+  ✅ Ótimo custo-benefício (4 GB RAM por R$40)
+  ✅ Painel hPanel intuitivo
+
+  Contras:
+  ❌ Você gerencia o servidor (requer conhecimento básico de Linux)
+  ❌ Atualizações de segurança são sua responsabilidade
+  ❌ Sem backup automático no plano básico
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  6. OPÇÃO D — HETZNER CLOUD (Europa / Melhor custo global)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Site: hetzner.com  |  Cobrança: em Euros, servidores na Alemanha/Finlândia
+
+  Planos Cloud Server:
+  ┌────────────┬───────┬────────┬──────────┬──────────────────────────────┐
+  │ Servidor   │ RAM   │ vCPU   │ SSD      │ Preço/mês                    │
+  ├────────────┼───────┼────────┼──────────┼──────────────────────────────┤
+  │ CX22       │ 4 GB  │ 2 vCPU │ 40 GB    │ €4,50/mês ≈ R$ 25/mês       │
+  │ CX32       │ 8 GB  │ 4 vCPU │ 80 GB    │ €8,25/mês ≈ R$ 47/mês       │
+  │ CX42       │ 16 GB │ 8 vCPU │ 160 GB   │ €16,80/mês ≈ R$ 95/mês      │
+  └────────────┴───────┴────────┴──────────┴──────────────────────────────┘
+
+  Para o ImobiSaaS (1 a 5 clientes): CX22 é suficiente.
+  Para 10+ clientes: CX32.
+
+  Prós:
+  ✅ Menor custo por RAM/CPU do mercado (referência global)
+  ✅ Alta confiabilidade (SLA 99,9%)
+  ✅ Interface excelente, backups fáceis (R$2,80 extra/mês)
+  ✅ Volume de snapshot disponível
+
+  Contras:
+  ❌ Latência maior (Europa → Brasil, ~200ms)
+  ❌ Cobrança em euros (variação cambial)
+  ❌ Requer gerenciamento de servidor igual à Hostinger
+  ❌ Suporte em inglês/alemão
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  7. OPÇÃO E — DIGITALOCEAN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Site: digitalocean.com  |  Cobrança: em dólares
+
+  Planos Droplet (VPS):
+  ┌────────────────┬───────┬────────┬──────────┬──────────────────────────┐
+  │ Droplet        │ RAM   │ vCPU   │ SSD      │ Preço/mês                │
+  ├────────────────┼───────┼────────┼──────────┼──────────────────────────┤
+  │ Basic 1GB      │ 1 GB  │ 1 vCPU │ 25 GB    │ US$6 ≈ R$34/mês         │
+  │ Basic 2GB      │ 2 GB  │ 1 vCPU │ 50 GB    │ US$12 ≈ R$68/mês        │
+  │ Basic 4GB      │ 4 GB  │ 2 vCPU │ 80 GB    │ US$24 ≈ R$136/mês       │
+  └────────────────┴───────┴────────┴──────────┴──────────────────────────┘
+
+  Managed MySQL (separado):
+  • Cluster básico: US$15/mês ≈ R$85/mês
+
+  Para ImobiSaaS com banco gerenciado:
+  Basic 2GB + Managed MySQL = US$27/mês ≈ R$155/mês (mais caro)
+
+  Prós:
+  ✅ Documentação excelente em português
+  ✅ Interface muito fácil para iniciantes
+  ✅ Marketplace com 1-click apps (LEMP, Node.js)
+  ✅ US$200 de crédito grátis para novos usuários
+
+  Contras:
+  ❌ Custo mais alto que Hetzner/Hostinger
+  ❌ Cobrança em dólares
+  ❌ Managed DB caro para o porte do projeto
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  8. OPÇÃO F — RENDER.COM
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Site: render.com  |  Cobrança: em dólares, PaaS similar ao Railway
+
+  ┌────────────────────────────────┬────────────────────────────────────┐
+  │ Web Service (Node.js, 512 MB)  │ US$ 7 / mês                       │
+  │ PostgreSQL gerenciado          │ US$ 7 / mês (gratuito 90 dias)    │
+  │                                │ ⚠️ Render não oferece MySQL nativo │
+  │                                │ Precisaria migrar para PostgreSQL  │
+  └────────────────────────────────┴────────────────────────────────────┘
+
+  IMPORTANTE: O sistema atual usa MySQL. Render não suporta MySQL nativamente.
+  Seria necessário refatorar o banco para PostgreSQL (trabalho extra).
+
+  VEREDICTO: ❌ Não recomendado sem migração de banco. Use Railway (MySQL nativo).
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  9. OPÇÃO G — AWS / GOOGLE CLOUD / AZURE (Enterprise)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Recomendado apenas a partir de 20+ clientes ou necessidade de alta disponibilidade.
+
+  Estimativa básica na AWS (São Paulo — região sa-east-1):
+  ┌─────────────────────────────┬────────────────────────────────────────┐
+  │ EC2 t3.small (2 GB RAM)     │ ~US$17/mês                            │
+  │ RDS MySQL t3.micro          │ ~US$15/mês                            │
+  │ S3 (fotos, 10 GB)           │ ~US$0,25/mês                         │
+  │ CloudFront CDN              │ ~US$1/mês                             │
+  │ ─────────────────────────── │ ──────────────────────────────────── │
+  │ TOTAL ESTIMADO              │ ~US$33/mês ≈ R$187/mês               │
+  └─────────────────────────────┴────────────────────────────────────────┘
+
+  Prós:
+  ✅ SLA 99,99%, altíssima confiabilidade
+  ✅ Escalabilidade infinita
+  ✅ Backups automáticos, compliance, auditoria
+  ✅ Região São Paulo (baixa latência)
+
+  Contras:
+  ❌ Complexidade alta (requer DevOps)
+  ❌ Custo inicial alto
+  ❌ Cobrança em dólares e modelo complexo
+  → Retorne a esta opção quando tiver 15+ clientes pagantes
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  10. STORAGE DE FOTOS DE IMÓVEIS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Atualmente as fotos são salvas no disco do servidor (base64 → arquivo local).
+  Para produção, recomenda-se mover para um storage externo:
+
+  ┌──────────────────────┬──────────────┬──────────────────────────────────┐
+  │ Serviço              │ Custo        │ Observação                       │
+  ├──────────────────────┼──────────────┼──────────────────────────────────┤
+  │ Disco do VPS         │ R$ 0         │ Simples, risco de perda no crash │
+  │ Cloudflare R2        │ US$ 0        │ 10 GB gratuito, sem egress fee   │
+  │                      │ após 10 GB   │ ⭐ MELHOR opção gratuita         │
+  │ AWS S3 São Paulo     │ ~US$0,25/GB  │ Confiável, integração fácil      │
+  │ Bunny.net CDN Storage│ US$0,01/GB   │ Muito barato, CDN global incluída│
+  │ Wasabi               │ US$6,99/TB   │ Ótimo para muitas fotos          │
+  └──────────────────────┴──────────────┴──────────────────────────────────┘
+
+  Recomendação:
+  → Fase inicial: disco do VPS (já funciona, sem custo extra)
+  → A partir de 5 clientes: Cloudflare R2 (gratuito até 10 GB)
+  → A partir de 20 clientes: Bunny.net CDN Storage
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  11. DOMÍNIO + SSL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Domínio para o sistema (ex: sistema.jrimobiliaria.com.br):
+
+  ┌────────────────────────────┬────────────────────────────────────────────┐
+  │ Registro.br (.com.br)      │ R$ 40,00 / ano ≈ R$ 3,33/mês             │
+  │ Cloudflare (.com)          │ US$ 10/ano ≈ R$ 57/ano ≈ R$ 4,75/mês    │
+  │ GoDaddy (.com.br)          │ R$ 35–60 / ano                            │
+  └────────────────────────────┴────────────────────────────────────────────┘
+
+  SSL (HTTPS):
+  • Let's Encrypt: GRATUITO — renovação automática a cada 90 dias
+    Configurado via Certbot no servidor ou automático em Railway/Render
+  • Cloudflare Proxy: GRATUITO — adiciona CDN + proteção DDoS de brinde
+
+  DICA: Se usar Cloudflare como DNS (gratuito), você ganha:
+  ✅ SSL automático
+  ✅ Proteção DDoS básica
+  ✅ Cache global (carregamento mais rápido)
+  Custo: R$ 0,00
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  12. TABELA COMPARATIVA — CUSTO MENSAL TOTAL (1 cliente)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ┌──────────────────────────┬─────────────────┬─────────┬──────────────────┐
+  │ Plataforma               │ Custo/mês       │ Moeda   │ Dificuldade      │
+  ├──────────────────────────┼─────────────────┼─────────┼──────────────────┤
+  │ Manus (produção)         │ ❌ Não adequado  │ —       │ —                │
+  │ Railway.app              │ US$10–15 (~R$80)│ Dólar   │ Fácil ⭐⭐⭐⭐⭐   │
+  │ Hostinger VPS KVM 1      │ R$ 43–58        │ Real    │ Médio ⭐⭐⭐      │
+  │ Hetzner CX22             │ ~R$ 28–35       │ Euro    │ Médio ⭐⭐⭐      │
+  │ DigitalOcean (c/ DB mgr) │ ~R$ 155         │ Dólar   │ Fácil ⭐⭐⭐⭐    │
+  │ Render.com               │ ❌ Requer migr.  │ —       │ —                │
+  │ AWS (região BR)          │ ~R$ 185         │ Dólar   │ Difícil ⭐⭐     │
+  └──────────────────────────┴─────────────────┴─────────┴──────────────────┘
+
+  VENCEDOR custo-benefício: Hostinger KVM 1 (R$ ~45/mês, pagamento em Real)
+  VENCEDOR praticidade: Railway.app (sem gerenciar servidor)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  13. CENÁRIO 1 — CLIENTE ÚNICO (JR Imobiliária)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Configuração recomendada:
+  ┌──────────────────────────────────────────────────────────────────────────┐
+  │  Servidor: Hostinger VPS KVM 1 (4 GB RAM, 2 vCPU, 50 GB SSD)           │
+  │  Banco   : MySQL 8 no próprio VPS                                        │
+  │  Frontend: servido pelo Express (já configurado)                          │
+  │  DNS/SSL : Cloudflare (gratuito) + Let's Encrypt                         │
+  │  Domínio : jrimobiliaria.com.br ou sistema.jrimobiliaria.com.br          │
+  │  Storage : disco do VPS (fotos)                                           │
+  │  Backup  : script cron diário → dump MySQL + tar das fotos               │
+  └──────────────────────────────────────────────────────────────────────────┘
+
+  Custo mensal detalhado:
+  ┌─────────────────────────────────┬───────────────────────────────────────┐
+  │ Hostinger KVM 1 (anual)         │ R$ 39,99 / mês                       │
+  │ Domínio .com.br (Registro.br)   │ R$  3,33 / mês (R$40/ano)           │
+  │ SSL (Let's Encrypt via Certbot) │ R$  0,00                             │
+  │ Cloudflare (plano Free)         │ R$  0,00                             │
+  │ ─────────────────────────────── │ ───────────────────────────────────── │
+  │ TOTAL                           │ R$ 43,32 / mês                       │
+  └─────────────────────────────────┴───────────────────────────────────────┘
+
+  Tempo de setup estimado: 2–4 horas (configuração inicial)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  14. CENÁRIO 2 — SAAS: VENDER PARA MÚLTIPLOS CLIENTES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Existem duas abordagens para atender múltiplos clientes:
+
+  ──────────────────────────────────────────────────────────────────────────
+  ABORDAGEM A — Uma instância por cliente (isolamento total)
+  ──────────────────────────────────────────────────────────────────────────
+
+  Cada cliente tem seu próprio servidor, banco e domínio.
+
+  Exemplo com Hostinger KVM 1 por cliente:
+  ┌────────────────┬────────────────────────────────────────────────────────┐
+  │ 1 cliente      │ R$ 43/mês (infraestrutura)                            │
+  │ 3 clientes     │ R$ 129/mês (3 VPS separados)                         │
+  │ 5 clientes     │ R$ 215/mês                                            │
+  │ 10 clientes    │ R$ 430/mês                                            │
+  └────────────────┴────────────────────────────────────────────────────────┘
+
+  Prós: Isolamento total, um cliente não afeta o outro, fácil de fazer backup.
+  Contras: Custo cresce linearmente, mais trabalho de manutenção.
+
+  MELHOR PARA: Até 5 clientes. Simples de gerenciar.
+
+  ──────────────────────────────────────────────────────────────────────────
+  ABORDAGEM B — Multi-tenant: todos no mesmo servidor (eficiente)
+  ──────────────────────────────────────────────────────────────────────────
+
+  Um servidor mais robusto atende a todos. Cada cliente tem seu próprio
+  banco de dados (schemas separados) dentro do mesmo MySQL.
+
+  Requer adaptação no código:
+  • Campo "tenantId" em todas as tabelas
+  • Autenticação separada por domínio/subdomínio
+  • Painel de controle central para o administrador do SaaS
+
+  Exemplo: Hetzner CX32 (8 GB RAM, 4 vCPU) para até 15 clientes:
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │ Hetzner CX32 (até 15 clientes)   │ ~R$ 47/mês total                  │
+  │ Custo por cliente (15 clientes)  │ R$ 3,13/mês                       │
+  └────────────────────────────────────────────────────────────────────────┘
+
+  MELHOR PARA: 6+ clientes. Precisa de mais desenvolvimento inicial.
+
+  ──────────────────────────────────────────────────────────────────────────
+  ABORDAGEM C — Híbrida (RECOMENDADA para crescimento)
+  ──────────────────────────────────────────────────────────────────────────
+
+  • Fase 1 (0–5 clientes): Um VPS por cliente (simples, rápido de entregar)
+  • Fase 2 (5–20 clientes): Migrar para servidor maior multi-tenant
+  • Fase 3 (20+ clientes): AWS/GCP com auto-scaling
+
+  Infraestrutura escalável sugerida (fase 2):
+  ┌──────────────────────────────────┬────────────────────────────────────┐
+  │ Hetzner CX42 (16 GB, 8 vCPU)    │ ~R$ 95/mês                        │
+  │ Volume Hetzner (backup 100 GB)   │ ~R$ 30/mês                        │
+  │ Cloudflare (DNS + CDN + SSL)     │ R$ 0/mês                          │
+  │ Domínio SaaS principal           │ R$ 4,75/mês                       │
+  │ ─────────────────────────────── │ ──────────────────────────────── │
+  │ TOTAL (até 20 clientes)          │ ~R$ 130/mês ≈ R$ 6,50/cliente     │
+  └──────────────────────────────────┴────────────────────────────────────┘
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  15. SUGESTÕES DE PREÇO PARA CLIENTES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Concorrentes no mercado brasileiro de software imobiliário:
+  ┌──────────────────────┬───────────────────────────────────────────────┐
+  │ Imoview (Totvs)      │ R$ 350 – R$ 900 / mês                       │
+  │ Kenlo                │ R$ 300 – R$ 700 / mês                       │
+  │ Ctrl Imob            │ R$ 200 – R$ 500 / mês                       │
+  │ Superlógica          │ R$ 400 – R$ 1.200 / mês                     │
+  │ Órulo                │ R$ 500 – R$ 2.000 / mês                     │
+  └──────────────────────┴───────────────────────────────────────────────┘
+
+  ━━━━ ESTRUTURA DE PLANOS SUGERIDA ━━━━
+
+  PLANO STARTER — Imobiliária pequena (até 30 imóveis)
+  ┌─────────────────────────────────────────────────────────────────────┐
+  │ Preço: R$ 197 / mês                                                │
+  │ Inclui: até 30 imóveis, 5 contratos ativos, 2 usuários             │
+  │ Suporte: WhatsApp (horário comercial)                               │
+  └─────────────────────────────────────────────────────────────────────┘
+
+  PLANO PROFISSIONAL — Imobiliária média (até 100 imóveis)
+  ┌─────────────────────────────────────────────────────────────────────┐
+  │ Preço: R$ 347 / mês                                                │
+  │ Inclui: até 100 imóveis, contratos ilimitados, 5 usuários          │
+  │         relatórios financeiros, emissão de recibos, módulo de       │
+  │         manutenções e vistorias                                      │
+  │ Suporte: WhatsApp prioritário + e-mail                              │
+  └─────────────────────────────────────────────────────────────────────┘
+
+  PLANO ENTERPRISE — Imobiliária grande (imóveis ilimitados)
+  ┌─────────────────────────────────────────────────────────────────────┐
+  │ Preço: R$ 597 / mês                                                │
+  │ Inclui: imóveis ilimitados, usuários ilimitados, domínio próprio    │
+  │         white-label (marca do cliente), backup diário garantido,    │
+  │         relatórios personalizados, integração com portais           │
+  │ Suporte: WhatsApp VIP 24h + reuniões mensais                        │
+  └─────────────────────────────────────────────────────────────────────┘
+
+  IMPLANTAÇÃO (cobrada uma vez):
+  ┌─────────────────────────────────────────────────────────────────────┐
+  │ Setup e configuração: R$ 500 – R$ 1.500 (cobrado na adesão)        │
+  │ Migração de dados (planilhas → sistema): R$ 300 – R$ 800           │
+  │ Treinamento da equipe (2h): R$ 300                                  │
+  └─────────────────────────────────────────────────────────────────────┘
+
+  ━━━━ PARA JR IMOBILIÁRIA (Cliente Piloto) ━━━━
+
+  Como primeiro cliente e "beta tester", sugere-se desconto especial:
+  ┌─────────────────────────────────────────────────────────────────────┐
+  │ Plano Profissional com desconto piloto: R$ 197/mês                 │
+  │ (em vez de R$ 347, desconto de 43%)                                │
+  │ Sem taxa de implantação (como contrapartida pela parceria)          │
+  │ Contrato mínimo: 6 meses                                           │
+  │                                                                     │
+  │ CONTRAPARTIDA: feedback constante, autorização para usar como       │
+  │ case de sucesso e referência comercial                              │
+  └─────────────────────────────────────────────────────────────────────┘
+
+  Sua margem estimada (JR Imobiliária no Plano Piloto):
+  ┌────────────────────────────────────────────────────────────────────┐
+  │ Receita mensal                 │  R$ 197,00                        │
+  │ Custo de infraestrutura        │ (R$  43,00)                       │
+  │ ─────────────────────────────  │ ──────────────────────────────── │
+  │ MARGEM BRUTA                   │  R$ 154,00 / mês (78%)           │
+  └────────────────────────────────┴───────────────────────────────────┘
+
+  Com 5 clientes no Plano Profissional (R$347):
+  ┌────────────────────────────────────────────────────────────────────┐
+  │ Receita mensal (5 × R$347)     │  R$ 1.735,00                     │
+  │ Infraestrutura (1 VPS cada)    │ (R$   215,00)                    │
+  │ ─────────────────────────────  │ ──────────────────────────────── │
+  │ MARGEM BRUTA                   │  R$ 1.520,00 / mês (87%)         │
+  └────────────────────────────────┴───────────────────────────────────┘
+
+  Com 10 clientes no Plano Profissional + 1 servidor multi-tenant:
+  ┌────────────────────────────────────────────────────────────────────┐
+  │ Receita mensal (10 × R$347)    │  R$ 3.470,00                     │
+  │ Infraestrutura (servidor único)│ (R$   130,00)                    │
+  │ ─────────────────────────────  │ ──────────────────────────────── │
+  │ MARGEM BRUTA                   │  R$ 3.340,00 / mês (96%)         │
+  └────────────────────────────────┴───────────────────────────────────┘
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  16. ROADMAP DE ESCALABILIDADE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  FASE 1 — MVP (0 a 3 clientes)
+  ─────────────────────────────
+  ✓ 1 VPS por cliente (Hostinger KVM 1)
+  ✓ Deploy manual via SSH ou GitHub Actions
+  ✓ Backup manual semanal
+  ✓ Custo: R$ 43–130/mês de infra
+  ✓ Foco: validar produto e ajustar com feedback
+
+  FASE 2 — Crescimento (3 a 10 clientes)
+  ───────────────────────────────────────
+  • Migrar para Railway.app (deploy automático por cliente)
+    ou Hetzner CX32 com Docker Compose (múltiplos containers)
+  • Implementar multi-tenancy no código (campo tenantId)
+  • Painel de controle do SaaS para gerenciar clientes
+  • Monitoramento: UptimeRobot (gratuito) ou Betterstack (~US$25/mês)
+  • Custo: R$ 130–300/mês de infra
+
+  FASE 3 — Escala (10 a 50 clientes)
+  ────────────────────────────────────
+  • Migrar para AWS/GCP São Paulo com auto-scaling
+  • CDN para frontend (Cloudflare)
+  • Storage S3 para fotos
+  • CI/CD completo (GitHub Actions)
+  • Custo: R$ 400–800/mês de infra
+
+  FASE 4 — Enterprise (50+ clientes)
+  ────────────────────────────────────
+  • Kubernetes (EKS, GKE ou K3s)
+  • Multi-region (Sudeste + Nordeste)
+  • SLA contratual 99,9%
+  • Equipe de suporte dedicada
+  • Custo: R$ 2.000+/mês de infra
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  17. RESUMO E RECOMENDAÇÃO FINAL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  SITUAÇÃO ATUAL: JR Imobiliária como único cliente.
+
+  RECOMENDAÇÃO IMEDIATA:
+
+  1. HOSPEDAGEM: Hostinger VPS KVM 1 — R$39,99/mês
+     → Melhor custo em Reais, servidor no Brasil, 4 GB RAM sobra para o sistema.
+     → Se preferir zero gestão de servidor: Railway.app (~R$80/mês em dólar).
+
+  2. DOMÍNIO: Registro.br — R$40/ano (≈ R$3,33/mês)
+     Sugestão: sistema.jrimobiliaria.com.br
+
+  3. SSL + CDN: Cloudflare gratuito — R$0,00
+
+  4. STORAGE: disco do próprio VPS por enquanto — R$0,00
+
+  5. CUSTO TOTAL DE INFRA: ≈ R$ 43/mês
+
+  ──────────────────────────────────────────────────────────────────────────
+  PREÇO SUGERIDO PARA JR IMOBILIÁRIA (cliente piloto):
+
+    → R$ 197/mês  (desconto de lançamento sobre o plano R$347)
+    → R$ 0 de implantação  (em troca de feedback e case de sucesso)
+    → Contrato de 6 meses mínimo
+
+  Sua margem: R$ 154/mês (78%) — já cobrindo toda a infra.
+  ──────────────────────────────────────────────────────────────────────────
+
+  PRÓXIMOS PASSOS PARA COLOCAR NO AR:
+
+  [ ] 1. Contratar VPS Hostinger KVM 1 (anual para melhor preço)
+  [ ] 2. Instalar Ubuntu 22.04, Node.js 20, MySQL 8, NGINX
+  [ ] 3. Clonar repositório + configurar .env de produção
+  [ ] 4. Configurar domínio no Cloudflare + apontar para o VPS
+  [ ] 5. Instalar SSL com Certbot (Let's Encrypt)
+  [ ] 6. Configurar script de backup automático (cron + mysqldump)
+  [ ] 7. Testar sistema em produção com dados reais da JR
+  [ ] 8. Assinar contrato com JR Imobiliária e emitir primeira cobrança
+
+
+================================================================================
+  Documento gerado por: ImobiSaaS — Sistema de Gestão Imobiliária
+  Este levantamento é uma estimativa. Preços podem variar com câmbio e promoções.
+  Verifique os valores atuais nos sites de cada plataforma antes de contratar.
+================================================================================
