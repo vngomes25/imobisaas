@@ -153,13 +153,13 @@ function vitePluginManusDebugCollector(): Plugin {
 
 const pwaPlugin = VitePWA({
   registerType: "autoUpdate",
-  includeAssets: ["icon.svg", "apple-touch-icon.png"],
+  includeAssets: ["logojr.jpg"],
   manifest: {
-    name: "ImobiSaaS — Gestão Imobiliária",
-    short_name: "ImobiSaaS",
+    name: "JR Consultoria Imobiliária",
+    short_name: "JR Imobiliária",
     description: "Sistema de gestão imobiliária profissional",
-    theme_color: "#1a56db",
-    background_color: "#ffffff",
+    theme_color: "#29ABE2",
+    background_color: "#29ABE2",
     display: "standalone",
     orientation: "portrait-primary",
     scope: "/",
@@ -167,14 +167,14 @@ const pwaPlugin = VitePWA({
     lang: "pt-BR",
     icons: [
       {
-        src: "/icons/pwa-192x192.png",
+        src: "/logojr.jpg",
         sizes: "192x192",
-        type: "image/png",
+        type: "image/jpeg",
       },
       {
-        src: "/icons/pwa-512x512.png",
+        src: "/logojr.jpg",
         sizes: "512x512",
-        type: "image/png",
+        type: "image/jpeg",
         purpose: "any maskable",
       },
     ],
