@@ -7,8 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { InputPhone, InputCpfCnpj } from "@/components/ui/form-fields";
 import { trpc } from "@/lib/trpc";
-import { UserCheck, Plus, Phone, Mail, Loader2, Search, Pencil, Trash2, CreditCard } from "lucide-react";
+import { UserCheck, Plus, Phone, Mail, Loader2, Search, Pencil, Trash2, CreditCard, Sparkles, ShieldCheck, ShieldAlert, ShieldX, TrendingDown } from "lucide-react";
 import { useState } from "react";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
 const emptyForm = {
@@ -121,6 +122,7 @@ function TenantsContent() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
+                    <AITenantAnalysis tenantId={t.id} tenantName={t.name} />
                     <Button variant="ghost" size="icon" onClick={() => openEdit(t)}><Pencil className="h-4 w-4" /></Button>
                     <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive"
                       onClick={() => { if (confirm(`Remover ${t.name}?`)) deleteMutation.mutate({ id: t.id }); }}>
@@ -211,5 +213,138 @@ function TenantForm({ formData, setFormData, onSubmit, isPending, label }: {
         {isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}{label}
       </Button>
     </div>
+  );
+}
+
+const scoreConfig = {
+  Baixo: { icon: ShieldCheck, color: "text-success", bg: "bg-success/10", badge: "bg-success/10 text-success" },
+  Médio: { icon: ShieldAlert, color: "text-warning", bg: "bg-warning/10", badge: "bg-warning/10 text-warning" },
+  Alto: { icon: ShieldX, color: "text-destructive", bg: "bg-destructive/10", badge: "bg-destructive/10 text-destructive" },
+};
+
+function AITenantAnalysis({ tenantId, tenantName }: { tenantId: number; tenantName: string }) {
+  const [open, setOpen] = useState(false);
+  const [tab, setTab] = useState<"credit" | "predict">("credit");
+
+  const creditMutation = trpc.ai.analyzeCreditRisk.useMutation({
+    onError: (e) => toast.error(e.message),
+  });
+  const predictMutation = trpc.ai.predictDelinquency.useMutation({
+    onError: (e) => toast.error(e.message),
+  });
+
+  const handleOpen = () => {
+    setOpen(true);
+    if (!creditMutation.data) creditMutation.mutate({ tenantId });
+  };
+
+  const credit = creditMutation.data;
+  const predict = predictMutation.data;
+  const creditConfig = credit ? scoreConfig[credit.score] : null;
+  const predictConfig = predict ? scoreConfig[predict.risco] : null;
+
+  return (
+    <>
+      <Button variant="ghost" size="icon" title="Análise IA" onClick={handleOpen}>
+        <Sparkles className="h-4 w-4 text-primary" />
+      </Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              Análise IA — {tenantName}
+            </DialogTitle>
+          </DialogHeader>
+
+          {/* Tabs */}
+          <div className="flex border-b">
+            <button onClick={() => setTab("credit")}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${tab === "credit" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
+              Score de Crédito
+            </button>
+            <button onClick={() => { setTab("predict"); if (!predict) predictMutation.mutate({ tenantId }); }}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${tab === "predict" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
+              Previsão
+            </button>
+          </div>
+
+          {tab === "credit" && (
+            <div className="space-y-4 py-2">
+              {creditMutation.isPending ? (
+                <div className="flex flex-col items-center py-8 gap-3">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  <p className="text-sm text-muted-foreground">Analisando histórico de pagamentos...</p>
+                </div>
+              ) : credit && creditConfig ? (
+                <>
+                  <div className={`rounded-xl p-4 ${creditConfig.bg} flex items-center gap-4`}>
+                    <creditConfig.icon className={`h-10 w-10 ${creditConfig.color} shrink-0`} />
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="font-bold text-lg">{credit.titulo}</p>
+                        <Badge className={creditConfig.badge}>Risco {credit.score}</Badge>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <p className="text-foreground leading-relaxed">{credit.resumo}</p>
+                    <div className="rounded-lg border p-3 bg-muted/30">
+                      <p className="font-semibold text-xs uppercase tracking-wide text-muted-foreground mb-1">Recomendação</p>
+                      <p>{credit.recomendacao}</p>
+                    </div>
+                  </div>
+                  <Button variant="outline" size="sm" className="w-full" onClick={() => creditMutation.mutate({ tenantId })}>
+                    <Sparkles className="h-3.5 w-3.5 mr-1.5" />Reanalisar
+                  </Button>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-4">Sem dados para análise.</p>
+              )}
+            </div>
+          )}
+
+          {tab === "predict" && (
+            <div className="space-y-4 py-2">
+              {predictMutation.isPending ? (
+                <div className="flex flex-col items-center py-8 gap-3">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  <p className="text-sm text-muted-foreground">Identificando padrões de pagamento...</p>
+                </div>
+              ) : predict && predictConfig ? (
+                <>
+                  <div className={`rounded-xl p-4 ${predictConfig.bg} flex items-center gap-4`}>
+                    <TrendingDown className={`h-8 w-8 ${predictConfig.color} shrink-0`} />
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <Badge className={predictConfig.badge}>Risco {predict.risco}</Badge>
+                        <span className={`text-2xl font-bold ${predictConfig.color}`}>{predict.probabilidadeAtraso}%</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">probabilidade de atraso</p>
+                    </div>
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <div className="rounded-lg border p-3">
+                      <p className="font-semibold text-xs uppercase tracking-wide text-muted-foreground mb-1">Padrão identificado</p>
+                      <p>{predict.padrao}</p>
+                    </div>
+                    <div className="rounded-lg border p-3">
+                      <p className="font-semibold text-xs uppercase tracking-wide text-muted-foreground mb-1">Previsão próximo mês</p>
+                      <p>{predict.previsao}</p>
+                    </div>
+                    <div className="rounded-lg border p-3 bg-primary/5 border-primary/20">
+                      <p className="font-semibold text-xs uppercase tracking-wide text-primary mb-1">Ação recomendada</p>
+                      <p>{predict.acao}</p>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-4">Sem histórico suficiente para previsão.</p>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

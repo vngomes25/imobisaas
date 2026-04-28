@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { InputCEP, InputCurrency, SelectUF, parseCurrency } from "@/components/ui/form-fields";
 import { trpc } from "@/lib/trpc";
-import { Building2, Plus, MapPin, Bed, Bath, Car, Loader2, Search } from "lucide-react";
+import { Building2, Plus, MapPin, Bed, Bath, Car, Loader2, Search, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
@@ -174,7 +174,10 @@ function PropertiesContent() {
 
               {/* Valores */}
               <div className="border-t pt-4 space-y-3">
-                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Valores</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Valores</p>
+                  <RentSuggestionButton form={form} onSuggest={(v) => setF("rentValue")(v)} />
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label>Aluguel (R$)</Label>
@@ -257,5 +260,90 @@ function PropertiesContent() {
         </div>
       )}
     </div>
+  );
+}
+
+function RentSuggestionButton({ form, onSuggest }: {
+  form: { addressStreet: string; addressCity: string; addressState: string; type: string; area: string; bedrooms: number };
+  onSuggest: (value: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const suggestMutation = trpc.ai.suggestRentValue.useMutation({
+    onError: (e) => toast.error(e.message),
+  });
+
+  const typeLabels: Record<string, string> = {
+    apartment: "Apartamento", house: "Casa", commercial: "Comercial",
+    land: "Terreno", studio: "Studio", room: "Quarto",
+  };
+
+  const handleSuggest = () => {
+    if (!form.addressCity) { toast.error("Preencha a cidade antes de sugerir valor."); return; }
+    setOpen(true);
+    suggestMutation.mutate({
+      address: form.addressStreet || "não informado",
+      city: form.addressCity,
+      state: form.addressState,
+      type: typeLabels[form.type] || form.type,
+      area: form.area ? Number(form.area) : undefined,
+      bedrooms: form.bedrooms || undefined,
+    });
+  };
+
+  const data = suggestMutation.data;
+
+  return (
+    <>
+      <Button type="button" variant="outline" size="sm" className="h-7 text-xs border-primary/40 text-primary hover:bg-primary/10" onClick={handleSuggest}>
+        <Sparkles className="h-3.5 w-3.5 mr-1.5" />Sugerir valor com IA
+      </Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              Sugestão de Aluguel
+            </DialogTitle>
+          </DialogHeader>
+          {suggestMutation.isPending ? (
+            <div className="flex flex-col items-center py-8 gap-3">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground">Analisando o mercado...</p>
+            </div>
+          ) : data ? (
+            <div className="space-y-4 py-2">
+              <div className="rounded-xl bg-primary/5 border border-primary/20 p-4 text-center">
+                <p className="text-xs text-muted-foreground mb-1">Valor sugerido</p>
+                <p className="text-3xl font-bold text-primary">
+                  R$ {data.valorSugerido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Faixa: R$ {data.faixaMinima.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} — R$ {data.faixaMaxima.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                </p>
+              </div>
+              <p className="text-sm text-foreground leading-relaxed">{data.justificativa}</p>
+              {data.fatoresValorizacao?.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">Fatores de valorização</p>
+                  <ul className="text-sm space-y-0.5">
+                    {data.fatoresValorizacao.map((f, i) => <li key={i}>• {f}</li>)}
+                  </ul>
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground italic">{data.observacao}</p>
+              <div className="flex gap-2">
+                <Button className="flex-1" onClick={() => {
+                  const formatted = data.valorSugerido.toFixed(2).replace(".", ",");
+                  onSuggest(formatted);
+                  setOpen(false);
+                  toast.success("Valor aplicado ao campo!");
+                }}>Usar este valor</Button>
+                <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+              </div>
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

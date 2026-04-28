@@ -13,6 +13,7 @@ import { documentsRouter } from "./routers/documents";
 import { dashboardRouter } from "./routers/dashboard";
 import { usersRouter } from "./routers/users";
 import { settingsRouter } from "./routers/settings";
+import { aiRouter } from "./routers/ai";
 
 export const appRouter = router({
   system: systemRouter,
@@ -40,6 +41,7 @@ export const appRouter = router({
   dashboard: dashboardRouter,
   users: usersRouter,
   settings: settingsRouter,
+  ai: aiRouter,
 });
 
 export type AppRouter = typeof appRouter;
