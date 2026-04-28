@@ -176,7 +176,21 @@ function PropertiesContent() {
               <div className="border-t pt-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Valores</p>
-                  <RentSuggestionButton form={form} onSuggest={(v) => setF("rentValue")(v)} />
+                  <RentSuggestionButton
+                    form={{
+                      addressStreet: form.addressStreet,
+                      addressNeighborhood: form.addressNeighborhood,
+                      addressCity: form.addressCity,
+                      addressState: form.addressState,
+                      type: form.type,
+                      area: form.area,
+                      bedrooms: form.bedrooms,
+                      bathrooms: form.bathrooms,
+                      parkingSpaces: form.parkingSpaces,
+                      condoFee: form.condoFee,
+                    }}
+                    onSuggest={(v) => setF("rentValue")(v)}
+                  />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="space-y-2">
@@ -263,12 +277,29 @@ function PropertiesContent() {
   );
 }
 
+const AMENITIES_OPTIONS = [
+  "Piscina", "Academia", "Churrasqueira", "Portaria 24h", "Salão de Festas",
+  "Playground", "Elevador", "Ar-condicionado", "Varanda", "Quintal",
+  "Segurança 24h", "Câmeras", "Gerador", "Energia Solar",
+];
+
 function RentSuggestionButton({ form, onSuggest }: {
-  form: { addressStreet: string; addressCity: string; addressState: string; type: string; area: string; bedrooms: number };
+  form: {
+    addressStreet: string; addressNeighborhood: string; addressCity: string;
+    addressState: string; type: string; area: string;
+    bedrooms: number; bathrooms: number; parkingSpaces: number; condoFee: string;
+  };
   onSuggest: (value: string) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [step, setStep] = useState<"form" | "result">("form");
+  const [furnished, setFurnished] = useState<"yes" | "no" | "partial">("no");
+  const [condition, setCondition] = useState<"new" | "excellent" | "good" | "regular" | "needs_renovation">("good");
+  const [amenities, setAmenities] = useState<string[]>([]);
+  const [freeDescription, setFreeDescription] = useState("");
+
   const suggestMutation = trpc.ai.suggestRentValue.useMutation({
+    onSuccess: () => setStep("result"),
     onError: (e) => toast.error(e.message),
   });
 
@@ -277,16 +308,32 @@ function RentSuggestionButton({ form, onSuggest }: {
     land: "Terreno", studio: "Studio", room: "Quarto",
   };
 
-  const handleSuggest = () => {
+  const toggleAmenity = (a: string) =>
+    setAmenities(prev => prev.includes(a) ? prev.filter(x => x !== a) : [...prev, a]);
+
+  const handleOpen = () => {
     if (!form.addressCity) { toast.error("Preencha a cidade antes de sugerir valor."); return; }
+    setStep("form");
+    suggestMutation.reset();
     setOpen(true);
+  };
+
+  const handleAnalyze = () => {
     suggestMutation.mutate({
       address: form.addressStreet || "não informado",
+      neighborhood: form.addressNeighborhood || undefined,
       city: form.addressCity,
       state: form.addressState,
       type: typeLabels[form.type] || form.type,
       area: form.area ? Number(form.area) : undefined,
       bedrooms: form.bedrooms || undefined,
+      bathrooms: form.bathrooms || undefined,
+      parkingSpaces: form.parkingSpaces || undefined,
+      condoFee: form.condoFee ? parseCurrency(form.condoFee) as unknown as number | undefined : undefined,
+      furnished,
+      condition,
+      amenities: amenities.length > 0 ? amenities : undefined,
+      freeDescription: freeDescription.trim() || undefined,
     });
   };
 
@@ -294,23 +341,103 @@ function RentSuggestionButton({ form, onSuggest }: {
 
   return (
     <>
-      <Button type="button" variant="outline" size="sm" className="h-7 text-xs border-primary/40 text-primary hover:bg-primary/10" onClick={handleSuggest}>
+      <Button type="button" variant="outline" size="sm" className="h-7 text-xs border-primary/40 text-primary hover:bg-primary/10" onClick={handleOpen}>
         <Sparkles className="h-3.5 w-3.5 mr-1.5" />Sugerir valor com IA
       </Button>
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-sm">
+      <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setStep("form"); }}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-primary" />
-              Sugestão de Aluguel
+              Sugestão de Aluguel com IA
             </DialogTitle>
           </DialogHeader>
-          {suggestMutation.isPending ? (
-            <div className="flex flex-col items-center py-8 gap-3">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
-              <p className="text-sm text-muted-foreground">Analisando o mercado...</p>
+
+          {step === "form" && !suggestMutation.isPending && (
+            <div className="space-y-4 py-1">
+              <p className="text-xs text-muted-foreground">Quanto mais detalhes você fornecer, mais precisa será a sugestão.</p>
+
+              <div className="rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground space-y-0.5">
+                <p><span className="font-medium text-foreground">Imóvel:</span> {typeLabels[form.type] || form.type}{form.area ? ` · ${form.area}m²` : ""}{form.bedrooms ? ` · ${form.bedrooms} qtos` : ""}</p>
+                <p><span className="font-medium text-foreground">Local:</span> {form.addressNeighborhood ? `${form.addressNeighborhood}, ` : ""}{form.addressCity}/{form.addressState}</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Mobília</Label>
+                  <Select value={furnished} onValueChange={(v: any) => setFurnished(v)}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="no">Sem mobília</SelectItem>
+                      <SelectItem value="partial">Semi-mobiliado</SelectItem>
+                      <SelectItem value="yes">Totalmente mobiliado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Estado do imóvel</Label>
+                  <Select value={condition} onValueChange={(v: any) => setCondition(v)}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="new">Novo / Na planta</SelectItem>
+                      <SelectItem value="excellent">Excelente estado</SelectItem>
+                      <SelectItem value="good">Bom estado</SelectItem>
+                      <SelectItem value="regular">Estado regular</SelectItem>
+                      <SelectItem value="needs_renovation">Precisa de reforma</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs">Comodidades / Diferenciais</Label>
+                <div className="flex flex-wrap gap-1.5">
+                  {AMENITIES_OPTIONS.map(a => (
+                    <button
+                      key={a}
+                      type="button"
+                      onClick={() => toggleAmenity(a)}
+                      className={`px-2.5 py-1 rounded-full text-xs border transition-colors ${
+                        amenities.includes(a)
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-background border-border text-muted-foreground hover:border-primary/50"
+                      }`}
+                    >
+                      {a}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs">Descrição livre (opcional)</Label>
+                <Textarea
+                  value={freeDescription}
+                  onChange={(e) => setFreeDescription(e.target.value)}
+                  placeholder="Ex: Vista para o mar, recém reformado, portaria 24h, próximo ao metrô..."
+                  rows={2}
+                  className="text-xs resize-none"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-1">
+                <Button className="flex-1" onClick={handleAnalyze}>
+                  <Sparkles className="h-3.5 w-3.5 mr-1.5" />Analisar com IA
+                </Button>
+                <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+              </div>
             </div>
-          ) : data ? (
+          )}
+
+          {suggestMutation.isPending && (
+            <div className="flex flex-col items-center py-10 gap-3">
+              <Loader2 className="h-7 w-7 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground">Analisando o mercado imobiliário...</p>
+              <p className="text-xs text-muted-foreground/60">Isso pode levar alguns segundos</p>
+            </div>
+          )}
+
+          {step === "result" && data && (
             <div className="space-y-4 py-2">
               <div className="rounded-xl bg-primary/5 border border-primary/20 p-4 text-center">
                 <p className="text-xs text-muted-foreground mb-1">Valor sugerido</p>
@@ -321,16 +448,33 @@ function RentSuggestionButton({ form, onSuggest }: {
                   Faixa: R$ {data.faixaMinima.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} — R$ {data.faixaMaxima.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                 </p>
               </div>
+
               <p className="text-sm text-foreground leading-relaxed">{data.justificativa}</p>
-              {data.fatoresValorizacao?.length > 0 && (
-                <div>
-                  <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">Fatores de valorização</p>
-                  <ul className="text-sm space-y-0.5">
-                    {data.fatoresValorizacao.map((f, i) => <li key={i}>• {f}</li>)}
-                  </ul>
-                </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {data.fatoresValorizacao?.length > 0 && (
+                  <div className="rounded-lg bg-success/5 border border-success/20 p-3">
+                    <p className="text-xs font-semibold text-success uppercase mb-1.5">Valorização</p>
+                    <ul className="text-xs space-y-1">
+                      {data.fatoresValorizacao.map((f, i) => <li key={i} className="flex gap-1">✓ {f}</li>)}
+                    </ul>
+                  </div>
+                )}
+                {data.fatoresDesvalorizacao?.length > 0 && (
+                  <div className="rounded-lg bg-destructive/5 border border-destructive/20 p-3">
+                    <p className="text-xs font-semibold text-destructive uppercase mb-1.5">Atenção</p>
+                    <ul className="text-xs space-y-1">
+                      {data.fatoresDesvalorizacao.map((f, i) => <li key={i} className="flex gap-1">⚠ {f}</li>)}
+                    </ul>
+                  </div>
+                )}
+              </div>
+
+              {data.comparacaoMercado && (
+                <p className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-3">{data.comparacaoMercado}</p>
               )}
               <p className="text-xs text-muted-foreground italic">{data.observacao}</p>
+
               <div className="flex gap-2">
                 <Button className="flex-1" onClick={() => {
                   const formatted = data.valorSugerido.toFixed(2).replace(".", ",");
@@ -338,10 +482,10 @@ function RentSuggestionButton({ form, onSuggest }: {
                   setOpen(false);
                   toast.success("Valor aplicado ao campo!");
                 }}>Usar este valor</Button>
-                <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+                <Button variant="outline" onClick={() => { setStep("form"); suggestMutation.reset(); }}>Refazer</Button>
               </div>
             </div>
-          ) : null}
+          )}
         </DialogContent>
       </Dialog>
     </>
