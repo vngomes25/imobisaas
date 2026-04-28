@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { router, adminProcedure, protectedProcedure } from "../_core/trpc";
 import * as db from "../db";
+import Anthropic from "@anthropic-ai/sdk";
 
 export const contractsRouter = router({
   list: adminProcedure.input(z.object({
@@ -89,5 +90,69 @@ export const contractsRouter = router({
   })).mutation(async ({ input }) => {
     await db.renewContract(input.id, input.newEndDate, input.newRentValue);
     return { success: true };
+  }),
+
+  readFromImage: adminProcedure.input(z.object({
+    imageBase64: z.string(),
+    mediaType: z.enum(["image/jpeg", "image/png", "image/webp", "image/gif"]),
+  })).mutation(async ({ input }) => {
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) throw new Error("ANTHROPIC_API_KEY não configurada no servidor.");
+
+    const client = new Anthropic({ apiKey });
+
+    const message = await client.messages.create({
+      model: "claude-opus-4-7",
+      max_tokens: 1024,
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "image",
+              source: {
+                type: "base64",
+                media_type: input.mediaType,
+                data: input.imageBase64,
+              },
+            },
+            {
+              type: "text",
+              text: `Analise este contrato de locação imobiliária e extraia as informações em JSON com exatamente estas chaves (deixe vazio "" se não encontrar):
+{
+  "tenantName": "nome completo do inquilino",
+  "tenantCpf": "CPF do inquilino (apenas números)",
+  "tenantPhone": "telefone do inquilino",
+  "ownerName": "nome completo do proprietário",
+  "ownerCpf": "CPF do proprietário (apenas números)",
+  "propertyAddress": "endereço completo do imóvel",
+  "rentValue": "valor do aluguel em reais (apenas números e vírgula, ex: 1500,00)",
+  "condoFee": "valor do condomínio (apenas números e vírgula)",
+  "iptuValue": "valor do IPTU mensal (apenas números e vírgula)",
+  "startDate": "data de início no formato DD/MM/AAAA",
+  "endDate": "data de término no formato DD/MM/AAAA",
+  "observations": "observações relevantes do contrato"
+}
+Responda APENAS com o JSON, sem texto adicional.`,
+            },
+          ],
+        },
+      ],
+    });
+
+    const text = message.content[0].type === "text" ? message.content[0].text : "";
+    try {
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) throw new Error("Não foi possível extrair dados do contrato.");
+      return JSON.parse(jsonMatch[0]) as {
+        tenantName: string; tenantCpf: string; tenantPhone: string;
+        ownerName: string; ownerCpf: string;
+        propertyAddress: string;
+        rentValue: string; condoFee: string; iptuValue: string;
+        startDate: string; endDate: string; observations: string;
+      };
+    } catch {
+      throw new Error("Erro ao interpretar o contrato. Tente uma foto mais nítida.");
+    }
   }),
 });

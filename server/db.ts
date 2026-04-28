@@ -535,6 +535,29 @@ export async function getDashboardStats() {
     .groupBy(sql`DATE_FORMAT(FROM_UNIXTIME(paidAt / 1000), '%Y-%m')`)
     .orderBy(sql`DATE_FORMAT(FROM_UNIXTIME(paidAt / 1000), '%Y-%m')`);
 
+  // Monthly overdue amounts — last 6 months (by dueDate)
+  const monthlyOverdue = await db.select({
+    month: sql<string>`DATE_FORMAT(FROM_UNIXTIME(dueDate / 1000), '%Y-%m')`,
+    overdue: sql<string>`COALESCE(SUM(totalAmount), 0)`,
+  }).from(payments)
+    .where(and(
+      eq(payments.status, "overdue"),
+      sql`dueDate >= ${now - 180 * 24 * 60 * 60 * 1000}`,
+    ))
+    .groupBy(sql`DATE_FORMAT(FROM_UNIXTIME(dueDate / 1000), '%Y-%m')`)
+    .orderBy(sql`DATE_FORMAT(FROM_UNIXTIME(dueDate / 1000), '%Y-%m')`);
+
+  // Payments status summary for current month
+  const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime();
+  const [currentMonthPayments] = await db.select({
+    paid: sql<number>`SUM(CASE WHEN status = 'paid' THEN 1 ELSE 0 END)`,
+    pending: sql<number>`SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END)`,
+    overdue: sql<number>`SUM(CASE WHEN status = 'overdue' THEN 1 ELSE 0 END)`,
+    paidAmount: sql<string>`COALESCE(SUM(CASE WHEN status = 'paid' THEN totalAmount ELSE 0 END), 0)`,
+    pendingAmount: sql<string>`COALESCE(SUM(CASE WHEN status = 'pending' THEN totalAmount ELSE 0 END), 0)`,
+    overdueAmount: sql<string>`COALESCE(SUM(CASE WHEN status = 'overdue' THEN totalAmount ELSE 0 END), 0)`,
+  }).from(payments).where(sql`dueDate >= ${startOfMonth}`);
+
   return {
     totalProperties: propStats?.total ?? 0,
     availableProperties: propStats?.available ?? 0,
@@ -549,6 +572,15 @@ export async function getDashboardStats() {
     pendingMaintenances: maintenanceStats?.pending ?? 0,
     expiringContracts: expiringStats?.expiring ?? 0,
     monthlyRevenue: monthlyRevenue as { month: string; revenue: string }[],
+    monthlyOverdue: monthlyOverdue as { month: string; overdue: string }[],
+    currentMonthPayments: {
+      paid: currentMonthPayments?.paid ?? 0,
+      pending: currentMonthPayments?.pending ?? 0,
+      overdue: currentMonthPayments?.overdue ?? 0,
+      paidAmount: parseFloat(currentMonthPayments?.paidAmount ?? "0"),
+      pendingAmount: parseFloat(currentMonthPayments?.pendingAmount ?? "0"),
+      overdueAmount: parseFloat(currentMonthPayments?.overdueAmount ?? "0"),
+    },
   };
 }
 

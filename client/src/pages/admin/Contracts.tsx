@@ -6,15 +6,24 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { InputCurrency, parseCurrency } from "@/components/ui/form-fields";
+import { InputCurrency, parseCurrency, initCurrency } from "@/components/ui/form-fields";
 import { trpc } from "@/lib/trpc";
-import { FileText, Plus, Loader2, Search, Calendar } from "lucide-react";
-import { useState } from "react";
+import { FileText, Plus, Loader2, Search, Calendar, Sparkles, Upload, X } from "lucide-react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
 
 const statusLabels: Record<string, string> = { active: "Ativo", expired: "Expirado", terminated: "Rescindido", pending: "Pendente" };
 const statusColors: Record<string, string> = { active: "bg-success/10 text-success", expired: "bg-muted text-muted-foreground", terminated: "bg-destructive/10 text-destructive", pending: "bg-warning/10 text-warning" };
+
+function toInputDate(brDate: string): string {
+  // "DD/MM/AAAA" -> "AAAA-MM-DD"
+  const parts = brDate.replace(/[^\d/]/g, "").split("/");
+  if (parts.length === 3 && parts[2].length === 4) {
+    return `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`;
+  }
+  return "";
+}
 
 const emptyForm = {
   propertyId: 0, tenantId: 0, ownerId: 0, status: "active" as const,
@@ -34,13 +43,42 @@ function ContractsContent() {
   const { data: propertiesList } = trpc.properties.list.useQuery({});
   const utils = trpc.useUtils();
   const createMutation = trpc.contracts.create.useMutation({
-    onSuccess: () => { utils.contracts.list.invalidate(); toast.success("Contrato criado"); setOpen(false); setForm(emptyForm); },
+    onSuccess: () => { utils.contracts.list.invalidate(); toast.success("Contrato criado"); setOpen(false); setForm(emptyForm); setAiPreview(null); },
+    onError: (e) => toast.error(e.message),
+  });
+  const readFromImageMutation = trpc.contracts.readFromImage.useMutation({
+    onSuccess: (data) => {
+      setAiPreview(data);
+      // Pre-fill form fields that can be directly mapped
+      setForm(f => ({
+        ...f,
+        startDate: data.startDate ? toInputDate(data.startDate) : f.startDate,
+        endDate: data.endDate ? toInputDate(data.endDate) : f.endDate,
+        rentValue: data.rentValue ? initCurrency(data.rentValue.replace(",", ".")) : f.rentValue,
+        condoFee: data.condoFee ? initCurrency(data.condoFee.replace(",", ".")) : f.condoFee,
+        iptuValue: data.iptuValue ? initCurrency(data.iptuValue.replace(",", ".")) : f.iptuValue,
+        notes: data.observations || f.notes,
+      }));
+      // Try to match tenant by name
+      if (data.tenantName && tenantsList) {
+        const match = tenantsList.find(t => t.name.toLowerCase().includes(data.tenantName.toLowerCase().split(" ")[0]));
+        if (match) setForm(f => ({ ...f, tenantId: match.id }));
+      }
+      // Try to match owner by name
+      if (data.ownerName && ownersList) {
+        const match = ownersList.find(o => o.name.toLowerCase().includes(data.ownerName.toLowerCase().split(" ")[0]));
+        if (match) setForm(f => ({ ...f, ownerId: match.id }));
+      }
+      toast.success("Contrato lido com sucesso! Revise os campos.");
+    },
     onError: (e) => toast.error(e.message),
   });
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [, setLocation] = useLocation();
   const [form, setForm] = useState(emptyForm);
+  const [aiPreview, setAiPreview] = useState<null | Record<string, string>>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const filtered = contracts?.filter(c => {
     const tenant = tenantsList?.find(t => t.id === c.tenantId);
@@ -65,6 +103,22 @@ function ContractsContent() {
 
   const setF = (field: keyof typeof emptyForm) => (val: any) => setForm(f => ({ ...f, [field]: val }));
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = (reader.result as string).split(",")[1];
+      const mediaType = file.type as "image/jpeg" | "image/png" | "image/webp" | "image/gif";
+      if (!["image/jpeg", "image/png", "image/webp", "image/gif"].includes(file.type)) {
+        toast.error("Use uma imagem JPG, PNG ou WEBP."); return;
+      }
+      readFromImageMutation.mutate({ imageBase64: base64, mediaType });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -77,6 +131,53 @@ function ContractsContent() {
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle>Novo Contrato de Locação</DialogTitle></DialogHeader>
             <div className="grid gap-4 py-2">
+
+              {/* IA: Ler contrato por foto */}
+              <div className="rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <p className="text-sm font-semibold text-primary">Preencher com IA</p>
+                  <span className="text-xs text-muted-foreground">— Tire uma foto do contrato e a IA preenche os campos automaticamente</span>
+                </div>
+                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="border-primary/40 text-primary hover:bg-primary/10"
+                  disabled={readFromImageMutation.isPending}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {readFromImageMutation.isPending
+                    ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Lendo contrato...</>
+                    : <><Upload className="h-4 w-4 mr-2" />Enviar foto do contrato</>}
+                </Button>
+
+                {aiPreview && (
+                  <div className="bg-background rounded-lg border p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Dados extraídos pela IA</p>
+                      <button onClick={() => setAiPreview(null)} className="text-muted-foreground hover:text-foreground"><X className="h-3.5 w-3.5" /></button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                      {[
+                        ["Inquilino", aiPreview.tenantName],
+                        ["Proprietário", aiPreview.ownerName],
+                        ["Endereço", aiPreview.propertyAddress],
+                        ["Aluguel", aiPreview.rentValue ? `R$ ${aiPreview.rentValue}` : ""],
+                        ["Início", aiPreview.startDate],
+                        ["Término", aiPreview.endDate],
+                      ].filter(([, v]) => v).map(([label, value]) => (
+                        <div key={label as string}>
+                          <span className="text-muted-foreground">{label}: </span>
+                          <span className="font-medium">{value}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">Campos compatíveis foram pré-preenchidos. Revise antes de salvar.</p>
+                  </div>
+                )}
+              </div>
 
               {/* Partes */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

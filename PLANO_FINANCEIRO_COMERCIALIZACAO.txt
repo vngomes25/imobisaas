@@ -1,0 +1,408 @@
+================================================================
+   PLANO FINANCEIRO — COMERCIALIZACAO DO IMOBISAAS
+   Sistema de Gestao Imobiliaria Profissional
+   Data: Abril 2026
+================================================================
+
+================================================================
+SUMARIO EXECUTIVO
+================================================================
+
+O ImobiSaaS e um sistema completo de gestao imobiliaria com
+portal do administrador, inquilino e proprietario, PWA instalavel,
+controle financeiro, contratos, vistorias e manutencoes.
+
+Pode ser comercializado de duas formas:
+  A) SaaS (Software como Servico) — assinatura recorrente
+  B) Licenca Unica (venda do sistema por imobiliaria)
+
+Este documento apresenta projecoes, custos, precos e estrategia
+para ambos os modelos.
+
+================================================================
+PARTE 1 — MODELO SaaS (RECOMENDADO)
+================================================================
+
+SaaS = voce hospeda, cobra mensalmente, atualiza centralmente.
+Cada imobiliaria usa o sistema sem instalar nada.
+
+----------------------------------------------------------------
+1.1 ESTRUTURA DE PLANOS SaaS
+----------------------------------------------------------------
+
+PLANO STARTER — R$ 149/mes
+  - Ate 30 imoveis
+  - Ate 30 contratos ativos
+  - 1 usuario admin
+  - Portal inquilino + proprietario
+  - Suporte por e-mail
+  - Ideal para: corretores autonomos e pequenas imobiliarias
+
+PLANO PROFISSIONAL — R$ 297/mes
+  - Ate 150 imoveis
+  - Contratos ilimitados
+  - Ate 3 usuarios admin
+  - PWA instalavel
+  - Relatorios financeiros
+  - Suporte prioritario (WhatsApp)
+  - Ideal para: imobiliarias de medio porte
+
+PLANO EMPRESARIAL — R$ 597/mes
+  - Imoveis ilimitados
+  - Usuarios ilimitados
+  - Dominio personalizado (ex: sistema.suaimobiliaria.com.br)
+  - Logo e cores da imobiliaria (white-label basico)
+  - Relatorios avancados + exportacao
+  - Suporte dedicado + onboarding
+  - Backup diario garantido
+  - Ideal para: grandes imobiliarias e redes
+
+PLANO REDE/FRANQUIA — sob consulta (R$ 1.200–2.500/mes)
+  - Multi-imobiliaria (varias filiais)
+  - Painel de gestao centralizado
+  - SLA garantido
+  - Treinamento da equipe
+  - Ideal para: redes imobiliarias e franquias
+
+----------------------------------------------------------------
+1.2 CUSTOS OPERACIONAIS SaaS (por mes)
+----------------------------------------------------------------
+
+INFRAESTRUTURA
+  Hostinger KVM 2 (ate 20 clientes)      R$  59,99/mes
+  Hostinger KVM 4 (ate 80 clientes)      R$ 119,99/mes
+  Dominio (.com.br)                       R$   4,17/mes (~R$50/ano)
+  SSL (Let Encrypt)                       R$   0,00/mes (gratuito)
+  Backup externo (opcional)               R$  15,00/mes
+  E-mail profissional (Google Workspace)  R$  34,00/mes
+
+CUSTO FIXO ESTIMADO (fase inicial, ate 20 clientes):
+  Infraestrutura total                    R$ 113,16/mes
+
+CUSTO POR CLIENTE ADICIONAL (acima de 20):
+  Upgrade de servidor                     R$  3,00–5,00/cliente
+
+----------------------------------------------------------------
+1.3 PROJECAO FINANCEIRA SaaS — ANO 1
+----------------------------------------------------------------
+
+  MES  | CLIENTES | RECEITA BRUTA | CUSTO INFRA | LUCRO BRUTO
+  -----|----------|---------------|-------------|------------
+    1  |     1    |   R$    297   |  R$    114  |  R$    183
+    2  |     2    |   R$    594   |  R$    114  |  R$    480
+    3  |     4    |   R$  1.188   |  R$    114  |  R$  1.074
+    4  |     6    |   R$  1.782   |  R$    114  |  R$  1.668
+    5  |     8    |   R$  2.376   |  R$    114  |  R$  2.262
+    6  |    10    |   R$  2.970   |  R$    114  |  R$  2.856
+    7  |    12    |   R$  3.564   |  R$    120  |  R$  3.444
+    8  |    15    |   R$  4.455   |  R$    120  |  R$  4.335
+    9  |    18    |   R$  5.346   |  R$    120  |  R$  5.226
+   10  |    20    |   R$  5.940   |  R$    120  |  R$  5.820
+   11  |    25    |   R$  7.425   |  R$    200  |  R$  7.225
+   12  |    30    |   R$  8.910   |  R$    200  |  R$  8.710
+
+  * Baseado em 100% dos clientes no Plano Profissional (R$297)
+  * Receita anual estimada ao fim do ano 1: R$ 44.847 (acumulado)
+  * Custo anual de infra estimado: R$ 1.530
+  * LUCRO BRUTO ANO 1: ~R$ 43.283 (acumulado)
+
+PONTO DE EQUILIBRIO (Break-even):
+  Com plano Starter (R$149): 1 cliente ja paga a infra
+  Com plano Profissional (R$297): 1 cliente cobre tudo
+
+----------------------------------------------------------------
+1.4 PROJECAO SaaS — ANOS 2 E 3
+----------------------------------------------------------------
+
+  ANO  | CLIENTES | RECEITA ANUAL   | INFRA ANUAL  | LUCRO ANUAL
+  -----|----------|-----------------|--------------|------------
+   2   |  50–80   | R$ 178k–238k    |  R$   2.400  |  R$ 175k+
+   3   | 100–150  | R$ 357k–535k    |  R$   4.800  |  R$ 350k+
+
+  * Considerando mix de planos (Starter + Profissional + Empresarial)
+  * Margem bruta SaaS: 95%+ (modelo extremamente escalavel)
+
+================================================================
+PARTE 2 — MODELO LICENCA UNICA (VENDA AVULSA)
+================================================================
+
+Venda do sistema instalado na propria estrutura do cliente.
+Voce configura, entrega e cobra por implantacao + suporte anual.
+
+----------------------------------------------------------------
+2.1 ESTRUTURA DE PRECOS — LICENCA UNICA
+----------------------------------------------------------------
+
+PACOTE BASICO — R$ 2.500 (pagamento unico)
+  - Instalacao em servidor do cliente (ou Hostinger deles)
+  - Configuracao completa do banco de dados
+  - Treinamento basico (1h online)
+  - 3 meses de suporte por e-mail incluido
+  - Sem customizacoes
+
+PACOTE PROFISSIONAL — R$ 4.900 (pagamento unico)
+  - Tudo do Basico
+  - Logo e cores da imobiliaria
+  - Dominio personalizado configurado
+  - Treinamento completo (3h online)
+  - 6 meses de suporte incluido
+  - 1 rodada de ajustes/customizacoes menores
+
+PACOTE PREMIUM — R$ 8.900 (pagamento unico)
+  - Tudo do Profissional
+  - Customizacoes avancadas (fluxos, relatorios)
+  - 12 meses de suporte incluido
+  - Garantia de atualizacoes por 1 ano
+  - Migracao de dados do sistema atual
+
+SUPORTE/MANUTENCAO ANUAL (renovacao):
+  - Plano Basico:        R$   600/ano
+  - Plano Profissional:  R$ 1.200/ano
+  - Plano Premium:       R$ 2.400/ano
+
+----------------------------------------------------------------
+2.2 PROJECAO FINANCEIRA — LICENCA UNICA (Ano 1)
+----------------------------------------------------------------
+
+  CENARIO CONSERVADOR (3 vendas/ano):
+    3 x R$ 4.900 = R$ 14.700
+    + renovacoes futuras: R$ 3.600/ano (a partir do ano 2)
+    Lucro ano 1: R$ 14.700
+
+  CENARIO MODERADO (8 vendas/ano):
+    8 x R$ 4.900 = R$ 39.200
+    + renovacoes futuras: R$ 9.600/ano
+    Lucro ano 1: R$ 39.200
+
+  CENARIO OTIMISTA (15 vendas/ano):
+    10 x R$ 4.900 + 5 x R$ 8.900 = R$ 93.500
+    Lucro ano 1: R$ 93.500
+
+----------------------------------------------------------------
+2.3 DESVANTAGENS DO MODELO LICENCA UNICA
+----------------------------------------------------------------
+
+  - Receita nao e recorrente (precisa vender sempre)
+  - Cada instalacao separada = mais trabalho de suporte
+  - Atualizacoes precisam ser entregues manualmente
+  - Dificil escalar alem de 20–30 clientes
+
+================================================================
+PARTE 3 — MODELO HIBRIDO (RECOMENDADO A LONGO PRAZO)
+================================================================
+
+Combinacao das duas estrategias:
+
+  FASE 1 (mes 1–6): Vender licencas unicas para gerar caixa
+    Meta: 3–5 vendas x R$ 4.900 = R$ 14.700–24.500
+
+  FASE 2 (mes 6–12): Migrar para SaaS e oferecer migracao
+    Clientes de licenca unica: desconto para entrar no SaaS
+    Novos clientes: somente planos SaaS
+
+  FASE 3 (ano 2+): SaaS puro, foco em crescimento recorrente
+    Meta: 50 clientes x R$ 297 = R$ 14.850/mes recorrente
+
+================================================================
+PARTE 4 — ESTRATEGIA DE AQUISICAO DE CLIENTES
+================================================================
+
+----------------------------------------------------------------
+4.1 CANAIS DE VENDA
+----------------------------------------------------------------
+
+1. INDICACAO DIRETA (custo zero)
+   - Imobiliarias conhecidas, parceiros, contatos
+   - Primeiro cliente (JR Imobiliaria): pede indicacoes
+   - Taxa de conversao alta: 20–40%
+
+2. INSTAGRAM / LINKEDIN (custo baixo)
+   - Demonstracoes em video do sistema
+   - "Antes e depois" da gestao imobiliaria
+   - Conteudo: dicas para imobiliarias, CRECI, locacao
+   - Investimento: 2–3h/semana de conteudo
+
+3. GRUPOS DE WHATSAPP E TELEGRAM
+   - Grupos de corretores de imoveis
+   - Grupos CRECI regionais
+   - Apresentacao + demo gratuita de 7 dias
+
+4. GOOGLE ADS (escala)
+   - Palavras-chave: "sistema imobiliaria", "software gestao imoveis"
+   - CPC estimado: R$ 2–5
+   - Orcamento sugerido: R$ 500–1.000/mes (fase de escala)
+
+5. PARCERIA COM CRECI / SINDICATOS
+   - Apresentar o sistema em eventos do setor
+   - Desconto para associados do CRECI
+
+----------------------------------------------------------------
+4.2 PITCH DE VENDA (30 segundos)
+----------------------------------------------------------------
+
+"Voce controla seus imoveis, contratos e cobrancas por onde?
+WhatsApp? Planilha? E seus inquilinos te ligam pra tudo?
+Com o nosso sistema voce tem tudo num lugar so: cadastro
+de imoveis, contratos automaticos, cobrancas, portal do
+inquilino e do proprietario — tudo no celular como um app.
+Quer uma demonstracao gratuita de 7 dias?"
+
+----------------------------------------------------------------
+4.3 TRIAL / CONVERSAO
+----------------------------------------------------------------
+
+  - Trial gratuito: 7–14 dias (sem cartao de credito)
+  - Taxa media de conversao trial para pago: 20–30%
+  - Apos trial: ofereça desconto de 20% no primeiro mes
+
+================================================================
+PARTE 5 — ROADMAP DE FUNCIONALIDADES (AGREGAR VALOR)
+================================================================
+
+Melhorias que aumentam o preco percebido e reduzem cancelamentos:
+
+  CURTO PRAZO (1–3 meses):
+  [OK] PWA instalavel (ja implementado)
+  [ ]  Boleto bancario integrado (Asaas, PagSeguro)
+  [ ]  Envio automatico de boleto por WhatsApp/e-mail
+  [ ]  Recibo de pagamento em PDF
+
+  MEDIO PRAZO (3–6 meses):
+  [ ]  Assinatura digital de contratos (ZapSign — ~R$0,50/doc)
+  [ ]  Relatorio de inadimplencia automatico
+  [ ]  App nativo iOS/Android (React Native)
+  [ ]  Integracao com portais (VivaReal, ZAP Imoveis)
+
+  LONGO PRAZO (6–12 meses):
+  [ ]  IA para analise de credito do inquilino
+  [ ]  White-label completo (cada cliente com seu dominio)
+  [ ]  Multi-tenant avancado (uma instalacao, N clientes)
+  [ ]  Marketplace de imoveis integrado
+
+================================================================
+PARTE 6 — ESTRUTURA JURIDICA E FISCAL
+================================================================
+
+----------------------------------------------------------------
+6.1 FORMA JURIDICA RECOMENDADA
+----------------------------------------------------------------
+
+  MEI (enquanto receita for menor que R$ 81.000/ano):
+  - Custo: ~R$ 75/mes (DAS)
+  - CNAE recomendado: 6201-5/01 (Desenvolvimento de programas)
+  - Abrir em: gov.br/mei (gratuito e rapido)
+  - Ideal para inicio (ate ~20 clientes no Profissional)
+
+  ME / SIMPLES NACIONAL (receita R$ 81k–360k/ano):
+  - Aliquota efetiva: ~6% sobre receita bruta (Anexo III)
+  - Exemplo: R$ 200k/ano = ~R$ 12k/ano de imposto
+  - Permite emitir NF para qualquer valor
+  - Contabilidade online: R$ 80–150/mes
+
+----------------------------------------------------------------
+6.2 IMPOSTOS APROXIMADOS (SaaS — Simples Nacional)
+----------------------------------------------------------------
+
+  Receita mensal R$  5.000  ->  imposto ~R$   300  (6%)
+  Receita mensal R$ 15.000  ->  imposto ~R$   900  (6%)
+  Receita mensal R$ 30.000  ->  imposto ~R$ 2.100  (7%)
+
+================================================================
+PARTE 7 — RESUMO FINANCEIRO CONSOLIDADO
+================================================================
+
+----------------------------------------------------------------
+MODELO SaaS — CENARIO CONSERVADOR
+----------------------------------------------------------------
+
+  Investimento inicial:         R$    55,00  (1 mes Hostinger)
+  Custo mensal fixo:            R$   114,00
+  Preco medio por cliente:      R$   297,00
+  Clientes para break-even:     1 cliente
+  Meta ao fim do ano 1:         30 clientes
+  Receita recorrente (mes 12):  R$  8.910,00
+  Custo anual de infra:         R$  1.530,00
+  LUCRO BRUTO ACUMULADO ANO 1:  R$ ~43.000
+  LUCRO BRUTO ANO 2:            R$ ~175.000  (50 clientes)
+  MARGEM BRUTA:                 95%+
+
+----------------------------------------------------------------
+MODELO LICENCA UNICA — CENARIO MODERADO
+----------------------------------------------------------------
+
+  Investimento inicial:         R$      0,00
+  Custo por venda:              R$      0,00  (apenas seu tempo)
+  Preco medio por venda:        R$  4.900,00
+  Meta ano 1:                   8 vendas
+  Receita ano 1:                R$ 39.200,00
+  LUCRO ANO 1:                  R$ ~38.000
+
+----------------------------------------------------------------
+MODELO HIBRIDO — RECOMENDACAO FINAL
+----------------------------------------------------------------
+
+  Fase 1 (mes 1–6):    Licencas unicas -> caixa imediato
+  Fase 2 (mes 6–12):   Migrar para SaaS recorrente
+  Meta ao fim de 12 meses: 30+ clientes SaaS + 5 licencas
+  RECEITA TOTAL ANO 1: R$ 100.000–130.000
+  LUCRO ESTIMADO:      R$  85.000–110.000
+
+================================================================
+PARTE 8 — PROXIMOS PASSOS PRATICOS
+================================================================
+
+  SEMANA 1:
+  [ ] Abrir MEI em gov.br/mei (gratuito)
+  [ ] Criar dominio do produto (ex: gestaoimobi.com.br)
+  [ ] Definir nome comercial do sistema
+  [ ] Criar landing page (apresentacao + planos + botao de contato)
+
+  MES 1:
+  [ ] Fechar primeiro cliente piloto (JR Imobiliaria) — R$ 197–297
+  [ ] Coletar depoimento e case de sucesso
+  [ ] Criar perfil no Instagram e LinkedIn do produto
+  [ ] Gravar video demo de 2 minutos do sistema
+
+  MES 2–3:
+  [ ] Prospectar 10 imobiliarias por semana (WhatsApp/Instagram)
+  [ ] Oferecer 7 dias de trial gratuito
+  [ ] Meta: 5 clientes pagantes
+
+  MES 4–6:
+  [ ] Implementar cobranca automatica de boleto (Asaas)
+  [ ] Criar video tutorial e FAQ de onboarding
+  [ ] Meta: 10–15 clientes
+
+  ANO 1 — META PRINCIPAL:
+  [ ] 30 clientes SaaS pagantes
+  [ ] Receita recorrente: R$ 8.900/mes
+  [ ] Lucro acumulado: R$ 43.000+
+
+================================================================
+OBSERVACOES FINAIS
+================================================================
+
+- O sistema ja esta pronto e no ar. A maior barreira (o produto)
+  ja foi superada. O desafio agora e puramente comercial.
+
+- Imobiliarias sao conservadoras: trial gratuito e suporte
+  proximo sao decisivos para a conversao.
+
+- Um unico cliente satisfeito no setor imobiliario indica para
+  toda a rede de corretores. Invista no sucesso do cliente.
+
+- O mercado brasileiro tem mais de 40.000 imobiliarias
+  registradas no CRECI. Mesmo 0,1% = 400 clientes potenciais.
+
+- Com 50 clientes no Plano Profissional (R$297):
+  RECEITA RECORRENTE = R$ 14.850/MES = R$ 178.200/ANO
+  Com custo de infra de apenas ~R$ 200/mes.
+
+- A margem de 95%+ do SaaS e rarissima em qualquer negocio.
+  Uma vez que o produto esta pronto, cada novo cliente e
+  quase lucro puro.
+
+================================================================
+   Documento gerado em: Abril 2026
+   Sistema: ImobiSaaS — Gestao Imobiliaria Profissional
+================================================================

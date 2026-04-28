@@ -1,14 +1,14 @@
 import AdminLayout from "@/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
 import {
   Building2, FileText, DollarSign, AlertTriangle, Users, UserCheck,
-  Wrench, ArrowRight, Home, Loader2, CalendarClock, TrendingUp,
+  Wrench, ArrowRight, Home, Loader2, CalendarClock, TrendingUp, PieChartIcon,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Legend,
 } from "recharts";
 
 export default function AdminDashboard() {
@@ -61,11 +61,32 @@ function DashboardContent() {
     info: "border-primary/30 bg-primary/5 text-primary",
   };
 
-  // Revenue chart data
-  const chartData = stats?.monthlyRevenue?.map(r => ({
-    month: r.month.slice(5) + "/" + r.month.slice(2, 4),
-    receita: parseFloat(r.revenue),
-  })) ?? [];
+  // Monthly revenue + overdue combined chart
+  const allMonths = Array.from(new Set([
+    ...(stats?.monthlyRevenue ?? []).map(r => r.month),
+    ...(stats?.monthlyOverdue ?? []).map(r => r.month),
+  ])).sort();
+
+  const chartData = allMonths.map(month => ({
+    month: month.slice(5) + "/" + month.slice(2, 4),
+    receita: parseFloat(stats?.monthlyRevenue?.find(r => r.month === month)?.revenue ?? "0"),
+    inadimplencia: parseFloat(stats?.monthlyOverdue?.find(r => r.month === month)?.overdue ?? "0"),
+  }));
+
+  // Occupancy pie chart
+  const occupancyData = [
+    { name: "Alugados", value: stats?.rentedProperties ?? 0, color: "hsl(var(--primary))" },
+    { name: "Vagos", value: stats?.availableProperties ?? 0, color: "hsl(var(--muted-foreground))" },
+    { name: "Manutenção", value: stats?.maintenanceProperties ?? 0, color: "hsl(var(--warning))" },
+  ].filter(d => d.value > 0);
+
+  // Current month payments pie
+  const cm = stats?.currentMonthPayments;
+  const paymentStatusData = [
+    { name: "Recebido", value: cm?.paidAmount ?? 0, color: "hsl(var(--success))" },
+    { name: "Pendente", value: cm?.pendingAmount ?? 0, color: "hsl(var(--warning))" },
+    { name: "Inadimplente", value: cm?.overdueAmount ?? 0, color: "hsl(var(--destructive))" },
+  ].filter(d => d.value > 0);
 
   return (
     <div className="space-y-8">
@@ -112,26 +133,108 @@ function DashboardContent() {
         ))}
       </div>
 
-      {/* Revenue Chart */}
-      {chartData.length > 0 && (
+      {/* Charts Row */}
+      {(chartData.length > 0 || occupancyData.length > 0) && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Revenue + Overdue Chart */}
+          {chartData.length > 0 && (
+            <Card className="lg:col-span-2">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <TrendingUp className="h-4 w-4 text-success" />
+                  Receita vs Inadimplência (últimos 6 meses)
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart data={chartData} margin={{ top: 4, right: 12, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="month" tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} />
+                    <YAxis tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} tickFormatter={v => `R$${(v / 1000).toFixed(0)}k`} />
+                    <Tooltip
+                      formatter={(v: number, name: string) => [
+                        `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+                        name === "receita" ? "Receita" : "Inadimplência",
+                      ]}
+                      contentStyle={{ borderRadius: 8, fontSize: 13 }}
+                    />
+                    <Legend formatter={(v) => v === "receita" ? "Receita" : "Inadimplência"} />
+                    <Bar dataKey="receita" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="inadimplencia" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} opacity={0.8} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Occupancy Pie */}
+          {occupancyData.length > 0 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <PieChartIcon className="h-4 w-4 text-primary" />
+                  Ocupação dos Imóveis
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={220}>
+                  <PieChart>
+                    <Pie
+                      data={occupancyData}
+                      cx="50%"
+                      cy="45%"
+                      innerRadius={55}
+                      outerRadius={80}
+                      paddingAngle={3}
+                      dataKey="value"
+                      label={({ name, value }) => `${value}`}
+                      labelLine={false}
+                    >
+                      {occupancyData.map((entry, i) => (
+                        <Cell key={i} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
+                    <Tooltip formatter={(v: number, name) => [v, name]} contentStyle={{ borderRadius: 8, fontSize: 13 }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {/* Current Month Payments */}
+      {paymentStatusData.length > 0 && (
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base">
-              <TrendingUp className="h-4 w-4 text-success" />
-              Receita Mensal (últimos 6 meses)
+              <DollarSign className="h-4 w-4 text-success" />
+              Cobranças do Mês Atual
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={chartData} margin={{ top: 4, right: 12, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="month" tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} />
-                <YAxis tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} tickFormatter={v => `R$${(v / 1000).toFixed(0)}k`} />
-                <Tooltip
-                  formatter={(v: number) => [`R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, "Receita"]}
-                  contentStyle={{ borderRadius: 8, fontSize: 13 }}
-                />
-                <Bar dataKey="receita" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+            <div className="grid grid-cols-3 gap-4 mb-4">
+              {[
+                { label: "Recebido", count: cm?.paid ?? 0, amount: cm?.paidAmount ?? 0, color: "text-success" },
+                { label: "Pendente", count: cm?.pending ?? 0, amount: cm?.pendingAmount ?? 0, color: "text-warning" },
+                { label: "Inadimplente", count: cm?.overdue ?? 0, amount: cm?.overdueAmount ?? 0, color: "text-destructive" },
+              ].map((s) => (
+                <div key={s.label} className="text-center">
+                  <p className={`text-2xl font-bold ${s.color}`}>{s.count}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{s.label}</p>
+                  <p className="text-xs font-medium mt-1">
+                    R$ {s.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  </p>
+                </div>
+              ))}
+            </div>
+            <ResponsiveContainer width="100%" height={16}>
+              <BarChart data={[{ recebido: cm?.paidAmount ?? 0, pendente: cm?.pendingAmount ?? 0, inadimplente: cm?.overdueAmount ?? 0 }]}
+                layout="vertical" margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+                <Bar dataKey="recebido" fill="hsl(var(--success))" stackId="a" radius={[4, 0, 0, 4]} />
+                <Bar dataKey="pendente" fill="hsl(var(--warning))" stackId="a" />
+                <Bar dataKey="inadimplente" fill="hsl(var(--destructive))" stackId="a" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
